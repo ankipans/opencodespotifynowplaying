@@ -113,11 +113,11 @@
     return v === null ? true : v === '1';
   }
 
-  function getTheme() {
+  function getUiTheme() {
     return localStorage.getItem(STORAGE.theme) === 'legacy' ? 'legacy' : 'modern';
   }
 
-  function applyTheme(theme) {
+  function applyUiTheme(theme) {
     const t = theme === 'legacy' ? 'legacy' : 'modern';
     document.body.classList.toggle('theme-legacy', t === 'legacy');
     if (el.themeSelect) el.themeSelect.value = t;
@@ -1072,7 +1072,7 @@
       el.themeSelect.addEventListener('change', () => {
         const theme = el.themeSelect.value === 'legacy' ? 'legacy' : 'modern';
         localStorage.setItem(STORAGE.theme, theme);
-        applyTheme(theme);
+        applyUiTheme(theme);
       });
     }
     if (el.toggleTokenVisibility) {
@@ -1121,7 +1121,7 @@
   async function init() {
     el.redirectUri.textContent = REDIRECT_URI;
     el.clientIdInput.value = getClientId();
-    applyTheme(getTheme());
+    applyUiTheme(getUiTheme());
     applyShowControls(getShowControls());
     applyShowArt(getShowArt());
     renderNothingPlaying();

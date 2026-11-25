@@ -476,8 +476,8 @@ body.theme-legacy {
   --btn-primary-fg: #000;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
-body.theme-legacy .bg-art,
-body.theme-legacy .bg-overlay { background: #000 !important; opacity: 1 !important; }
+body.theme-legacy .bg-art { background-color: #000 !important; opacity: 1 !important; filter: brightness(0.4) saturate(0.8); }
+body.theme-legacy .bg-overlay { background: rgba(0,0,0,0.25) !important; }
 body.theme-legacy .panel { border-radius: 0; background: #111; border: 1px solid #333; box-shadow: none; backdrop-filter: none; }
 body.theme-legacy .btn,
 body.theme-legacy .icon-btn,
