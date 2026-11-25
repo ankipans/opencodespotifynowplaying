@@ -59,8 +59,8 @@ button, input { font: inherit; }
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: clamp(14px, 2vw, 28px);
-  gap: clamp(12px, 2vh, 24px);
+  padding: clamp(24px, 4vw, 56px);
+  gap: clamp(16px, 2vh, 28px);
 }
 
 .header {
@@ -70,6 +70,12 @@ button, input { font: inherit; }
   gap: 16px;
   width: min(1800px, 100%);
   margin: 0 auto;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+body.ui-idle .header {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
 }
 .brand {
   display: inline-flex;
@@ -327,9 +333,11 @@ button, input { font: inherit; }
   padding: 0 2px;
   color: var(--muted-2);
   font-size: 0.8125rem;
+  min-height: 1.25em;
 }
-.footer-status { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.footer-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.footer-status { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.playback-source { margin: 0; margin-left: auto; text-align: right; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context-sep { opacity: 0.7; }
 .link-btn {
   appearance: none;
   padding: 0;
@@ -373,7 +381,7 @@ button, input { font: inherit; }
 }
 
 @media (max-width: 520px) {
-  .app { padding: 12px; gap: 10px; }
+  .app { padding: 20px; gap: 14px; }
   .header-actions { gap: 6px; }
   .icon-btn { width: 40px; height: 40px; border-radius: 10px; }
   .brand-text { display: none; }

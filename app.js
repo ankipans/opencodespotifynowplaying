@@ -41,6 +41,8 @@
     progressDuration: document.getElementById('progress-duration'),
     progressBar: document.querySelector('.progress-bar'),
     deviceName: document.getElementById('device-name'),
+    contextName: document.getElementById('context-name'),
+    contextSep: document.getElementById('context-sep'),
     footerStatus: document.getElementById('footer-status'),
     bgArt: document.getElementById('bg-art'),
     fullscreenBtn: document.getElementById('fullscreen-btn'),
@@ -55,6 +57,8 @@
   let wakeLock = null;
   let wakeLockWanted = false;
   let statusTimer = null;
+  let idleTimer = null;
+  const IDLE_MS = 5000;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
   function setMessage(text, type = '') {
@@ -127,6 +131,8 @@
     el.loginPanel.hidden = name !== 'login';
     el.playerPanel.hidden = name !== 'player';
     if (el.logoutBtn) el.logoutBtn.hidden = name !== 'player';
+    if (name === 'player') resetIdleTimer();
+    else document.body.classList.remove('ui-idle');
   }
 
   function updateFooter(text) {
@@ -269,15 +275,64 @@
   }
 
   let bgRequestId = 0;
+  let lastBgImage = null;
+  let lastBgColor = null;
+  let lastContextUri = null;
+  let lastContextName = '';
   async function setBackground(imageUrl) {
-    const req = ++bgRequestId;
-    if (!imageUrl) {
-      applyTheme([0, 0, 0]);
+    const next = imageUrl || '';
+    if (next === lastBgImage && lastBgColor) {
       return;
     }
-    const color = await extractDominantColor(imageUrl);
+    const req = ++bgRequestId;
+    if (!next) {
+      lastBgImage = '';
+      lastBgColor = [0, 0, 0];
+      applyTheme(lastBgColor);
+      return;
+    }
+    const color = await extractDominantColor(next);
     if (req !== bgRequestId) return;
+    lastBgImage = next;
+    lastBgColor = color;
     applyTheme(color);
+  }
+
+  function renderPlaybackSource(deviceName, contextName) {
+    const device = deviceName || '';
+    const context = contextName || '';
+    el.deviceName.textContent = device;
+    el.contextName.textContent = context;
+    el.contextSep.hidden = !(device && context);
+  }
+
+  async function updateContextName(data) {
+    const ctx = data && data.context;
+    const uri = ctx && ctx.uri ? ctx.uri : '';
+    const type = ctx && ctx.type ? ctx.type : '';
+    const device = data && data.device && data.device.name ? data.device.name : '';
+    if (!uri || type !== 'playlist') {
+      lastContextUri = uri || null;
+      lastContextName = '';
+      renderPlaybackSource(device, '');
+      return;
+    }
+    if (uri === lastContextUri) {
+      renderPlaybackSource(device, lastContextName);
+      return;
+    }
+    lastContextUri = uri;
+    lastContextName = '';
+    renderPlaybackSource(device, '');
+    try {
+      const id = uri.split(':').pop();
+      const playlist = await apiFetch(`/playlists/${encodeURIComponent(id)}?fields=name`);
+      if (lastContextUri !== uri) return;
+      lastContextName = (playlist && playlist.name) || '';
+      renderPlaybackSource(device, lastContextName);
+    } catch (err) {
+      console.error('Failed to fetch playlist name', err);
+    }
   }
 
   function renderNothingPlaying(message) {
@@ -289,7 +344,9 @@
     el.trackName.textContent = 'Nothing playing';
     el.trackArtist.textContent = message || 'Start playing something on Spotify.';
     el.trackAlbum.textContent = '';
-    el.deviceName.textContent = '';
+    renderPlaybackSource('', '');
+    lastContextUri = null;
+    lastContextName = '';
     setProgress(0, 0);
     setDocumentTitle('', '');
     setBackground('');
@@ -333,7 +390,9 @@
     el.trackName.textContent = title;
     el.trackArtist.textContent = artists || 'Unknown artist';
     el.trackAlbum.textContent = album;
-    el.deviceName.textContent = data.device && data.device.name ? `Listening on ${data.device.name}` : '';
+    const deviceText = data.device && data.device.name ? `Listening on ${data.device.name}` : '';
+    renderPlaybackSource(deviceText, lastContextUri === (data.context && data.context.uri) ? lastContextName : '');
+    updateContextName(data).catch(console.error);
     setProgress(progress, duration);
     setDocumentTitle(title, artists);
     setBackground(image);
@@ -660,7 +719,23 @@
     syncWakeLockButton();
   }
 
+  function isPlayerVisible() {
+    return el.playerPanel && !el.playerPanel.hidden;
+  }
+
+  function resetIdleTimer() {
+    document.body.classList.remove('ui-idle');
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (isPlayerVisible()) document.body.classList.add('ui-idle');
+    }, IDLE_MS);
+  }
+
   function initEvents() {
+    ['mousemove', 'mousedown', 'touchstart', 'keydown'].forEach((evt) => {
+      document.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+
     el.settingsToggle.addEventListener('click', () => {
       const opening = el.setupPanel.hidden;
       if (opening) {
@@ -733,6 +808,7 @@
     initEvents();
     syncFullscreenButton();
     syncWakeLockButton();
+    resetIdleTimer();
 
     const handledCallback = await handleCallback();
     if (handledCallback) return;
