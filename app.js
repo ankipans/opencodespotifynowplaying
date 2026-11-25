@@ -1080,17 +1080,43 @@
 
   const silentAudio = (() => {
     let audio = null;
+    let ctx = null;
     let wantPlaying = false;
     function ensure() {
       if (audio) return audio;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        try {
+          ctx = new AC();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const dest = ctx.createMediaStreamDestination();
+          osc.frequency.value = 440;
+          gain.gain.value = 0.00001;
+          osc.connect(gain);
+          gain.connect(dest);
+          osc.start();
+          audio = new Audio();
+          audio.srcObject = dest.stream;
+          audio.loop = true;
+          audio.volume = 0.00001;
+          return audio;
+        } catch (e) {
+          ctx = null;
+          audio = null;
+        }
+      }
       audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
       audio.loop = true;
-      audio.volume = 0;
-      audio.preload = 'auto';
+      audio.volume = 0.00001;
       return audio;
     }
     function sync() {
       const a = ensure();
+      if (!a) return;
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
       if (wantPlaying) {
         const p = a.play();
         if (p && p.catch) p.catch(() => {});

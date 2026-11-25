@@ -247,7 +247,7 @@
   }
 
   function applyShowClock(show) {
-    if (el.topClock) el.topClock.style.display = show ? 'block' : 'none';
+    if (el.topClock) el.topClock.style.display = show ? 'table-cell' : 'none';
     if (el.showClockToggle) el.showClockToggle.checked = !!show;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
     if (show) {
