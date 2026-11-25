@@ -4,7 +4,7 @@
   const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
   const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
   const API_BASE = 'https://api.spotify.com/v1';
-  const SCOPES = ['user-read-currently-playing', 'user-read-playback-state'];
+  const SCOPES = ['user-read-currently-playing', 'user-read-playback-state', 'user-modify-playback-state'];
   const POLL_INTERVAL = 5000;
   const PROGRESS_TICK = 1000;
 
@@ -33,6 +33,9 @@
     albumArt: document.getElementById('album-art'),
     artPlaceholder: document.getElementById('art-placeholder'),
     statusBadge: document.getElementById('status-badge'),
+    prevBtn: document.getElementById('prev-btn'),
+    playpauseBtn: document.getElementById('playpause-btn'),
+    nextBtn: document.getElementById('next-btn'),
     trackName: document.getElementById('track-name'),
     trackArtist: document.getElementById('track-artist'),
     trackAlbum: document.getElementById('track-album'),
@@ -341,6 +344,11 @@
     el.albumArt.alt = '';
     el.statusBadge.textContent = 'Idle';
     el.statusBadge.className = 'status-badge';
+    if (el.playpauseBtn) {
+      el.playpauseBtn.classList.remove('is-playing');
+      el.playpauseBtn.setAttribute('aria-label', 'Play');
+      el.playpauseBtn.title = 'Play';
+    }
     el.trackName.textContent = 'Nothing playing';
     el.trackArtist.textContent = message || 'Start playing something on Spotify.';
     el.trackAlbum.textContent = '';
@@ -387,6 +395,11 @@
 
     el.statusBadge.textContent = data.is_playing ? 'Playing' : 'Paused';
     el.statusBadge.className = 'status-badge' + (data.is_playing ? ' playing' : '');
+    if (el.playpauseBtn) {
+      el.playpauseBtn.classList.toggle('is-playing', !!data.is_playing);
+      el.playpauseBtn.setAttribute('aria-label', data.is_playing ? 'Pause' : 'Play');
+      el.playpauseBtn.title = data.is_playing ? 'Pause' : 'Play';
+    }
     el.trackName.textContent = title;
     el.trackArtist.textContent = artists || 'Unknown artist';
     el.trackAlbum.textContent = album;
@@ -449,19 +462,27 @@
     }
   }
 
-  async function apiFetch(path, retry = true) {
+  async function apiFetch(path, opts = {}) {
+    const retry = typeof opts === 'boolean' ? opts : (opts.retry !== false);
+    const method = (opts && opts.method) || 'GET';
+    const body = opts && opts.body;
     const accessToken = await getAccessToken();
     if (!accessToken) throw new Error('Not authenticated');
 
-    const res = await fetch(API_BASE + path, {
-      headers: { Authorization: 'Bearer ' + accessToken },
+    const res = await fetch(path.startsWith('http') ? path : API_BASE + path, {
+      method,
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
     if (res.status === 401 && retry) {
       const token = getToken();
       if (token && token.refresh_token) {
         const refreshed = await refreshAccessToken(token);
-        if (refreshed) return apiFetch(path, false);
+        if (refreshed) return apiFetch(path, { ...((typeof opts === 'object' && opts) || {}), retry: false });
       }
       clearToken();
       throw new Error('Session expired. Please connect again.');
@@ -473,11 +494,15 @@
       throw new Error(`Rate limited. Retrying in ${retryAfter}s.`);
     }
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
+      const text = await res.text().catch(() => '');
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch {}
       const msg = (data.error && data.error.message) || `Spotify API error (${res.status})`;
       throw new Error(msg);
     }
-    return res.json();
+    const text = await res.text().catch(() => '');
+    if (!text) return null;
+    try { return JSON.parse(text); } catch { return null; }
   }
 
   async function fetchNowPlaying() {
@@ -719,6 +744,26 @@
     syncWakeLockButton();
   }
 
+  async function controlPlayback(action) {
+    try {
+      if (action === 'toggle') {
+        if (currentPlayback && currentPlayback.isPlaying) {
+          await apiFetch('/me/player/pause', { method: 'PUT' });
+        } else {
+          await apiFetch('/me/player/play', { method: 'PUT' });
+        }
+      } else if (action === 'next') {
+        await apiFetch('/me/player/next', { method: 'POST' });
+      } else if (action === 'previous') {
+        await apiFetch('/me/player/previous', { method: 'POST' });
+      }
+      setTimeout(() => { fetchNowPlaying().catch(console.error); }, 350);
+    } catch (err) {
+      console.error('Playback control failed', err);
+      showTransientStatus(err.message || 'Playback control failed.', 3500);
+    }
+  }
+
   function isPlayerVisible() {
     return el.playerPanel && !el.playerPanel.hidden;
   }
@@ -788,6 +833,9 @@
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
     el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
     el.wakelockBtn.addEventListener('click', () => { toggleWakeLock().catch(console.error); });
+    if (el.prevBtn) el.prevBtn.addEventListener('click', () => { controlPlayback('previous').catch(console.error); });
+    if (el.playpauseBtn) el.playpauseBtn.addEventListener('click', () => { controlPlayback('toggle').catch(console.error); });
+    if (el.nextBtn) el.nextBtn.addEventListener('click', () => { controlPlayback('next').catch(console.error); });
     document.addEventListener('fullscreenchange', syncFullscreenButton);
     document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 

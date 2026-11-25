@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotify Now Playing</title>
   <meta name="description" content="Display your current Spotify playback status.">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -100,7 +101,21 @@
           </div>
         </div>
         <div class="track-info">
-          <p id="status-badge" class="status-badge">Idle</p>
+          <div class="status-row">
+            <p id="status-badge" class="status-badge">Idle</p>
+            <div class="playback-controls" aria-label="Playback controls">
+              <button id="prev-btn" class="control-btn" type="button" aria-label="Previous track" title="Previous track">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zm3.5 7 9.5 7V5z"/></svg>
+              </button>
+              <button id="playpause-btn" class="control-btn control-btn-main" type="button" aria-label="Play" title="Play">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+              </button>
+              <button id="next-btn" class="control-btn" type="button" aria-label="Next track" title="Next track">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM5 19l9.5-7L5 5z"/></svg>
+              </button>
+            </div>
+          </div>
           <h1 id="track-name" class="track-name">Nothing playing</h1>
           <p id="track-artist" class="track-artist">Start playing something on Spotify</p>
           <p id="track-album" class="track-album"></p>
