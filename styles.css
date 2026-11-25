@@ -21,7 +21,7 @@ body {
   min-height: 100%;
   background: var(--bg-color, #000);
   color: var(--fg);
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Figtree", "Helvetica Neue", Helvetica, Arial, sans-serif;
   line-height: 1.4;
   overflow-x: hidden;
 }
