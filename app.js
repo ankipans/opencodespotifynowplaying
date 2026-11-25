@@ -75,7 +75,7 @@
   let wakeLockWanted = false;
   let statusTimer = null;
   let idleTimer = null;
-  const IDLE_MS = 5000;
+  const IDLE_MS = (window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches)) ? 10000 : 5000;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
   function setMessage(text, type = '') {

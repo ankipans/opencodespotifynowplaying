@@ -16,6 +16,8 @@
     setupPanel: $('setup-panel'),
     playerPanel: $('player-panel'),
     settingsToggle: $('settings-toggle'),
+    wakeBtn: $('wake-btn'),
+    fullscreenBtn: $('fullscreen-btn'),
     accessTokenInput: $('access-token-input'),
     saveAccessToken: $('save-access-token'),
     clearData: $('clear-data'),
@@ -34,6 +36,9 @@
     progressFill: $('progress-fill'),
     progressCurrent: $('progress-current'),
     progressDuration: $('progress-duration'),
+    prevBtn: $('prev-btn'),
+    playpauseBtn: $('playpause-btn'),
+    nextBtn: $('next-btn'),
     deviceName: $('device-name'),
     contextName: $('context-name'),
     contextSep: $('context-sep'),
@@ -50,6 +55,10 @@
   var lastContextName = '';
   var currentDeviceText = '';
   var lastImage = '';
+  var wakeLock = null;
+  var wakeLockWanted = false;
+  var idleTimer = null;
+  var IDLE_MS = 10000;
 
   function getStored(key, fallback) {
     try {
@@ -126,6 +135,11 @@
   function showPanel(name) {
     el.setupPanel.style.display = name === 'setup' ? 'block' : 'none';
     el.playerPanel.style.display = name === 'player' ? 'block' : 'none';
+    if (name === 'player') {
+      document.body.className = document.body.className.replace(/\bsetup-mode\b/g, '');
+    } else if (document.body.className.indexOf('setup-mode') === -1) {
+      document.body.className += ' setup-mode';
+    }
   }
 
   function apiFetch(path, method, cb) {
@@ -219,6 +233,7 @@
     currentPlayback = null;
     if (el.albumArt) { el.albumArt.removeAttribute('src'); el.albumArt.alt = ''; }
     if (el.statusBadge) { el.statusBadge.textContent = 'Idle'; el.statusBadge.className = 'status-badge'; }
+    if (el.playpauseBtn) { el.playpauseBtn.textContent = 'Play'; el.playpauseBtn.setAttribute('aria-label', 'Play'); }
     if (el.trackName) el.trackName.textContent = 'Nothing playing';
     if (el.trackArtist) el.trackArtist.textContent = message || 'Start playing something on Spotify.';
     if (el.trackAlbum) el.trackAlbum.textContent = '';
@@ -286,6 +301,10 @@
       el.statusBadge.textContent = data.is_playing ? 'Playing' : 'Paused';
       el.statusBadge.className = 'status-badge' + (data.is_playing ? ' playing' : '');
     }
+    if (el.playpauseBtn) {
+      el.playpauseBtn.textContent = data.is_playing ? 'Pause' : 'Play';
+      el.playpauseBtn.setAttribute('aria-label', data.is_playing ? 'Pause' : 'Play');
+    }
     if (el.trackName) el.trackName.textContent = title;
     if (el.trackArtist) el.trackArtist.textContent = artists || '\u00A0';
     if (el.trackAlbum) el.trackAlbum.textContent = album;
@@ -338,12 +357,97 @@
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
   }
 
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+  function syncFullscreenBtn() {
+    if (!el.fullscreenBtn) return;
+    var active = isFullscreen();
+    el.fullscreenBtn.textContent = active ? 'Exit Fullscreen' : 'Fullscreen';
+  }
+  function toggleFullscreen() {
+    if (isFullscreen()) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+      return;
+    }
+    var root = document.documentElement;
+    if (root.requestFullscreen) root.requestFullscreen();
+    else if (root.webkitRequestFullscreen) root.webkitRequestFullscreen();
+    else if (root.msRequestFullscreen) root.msRequestFullscreen();
+    else showTransientStatus('Fullscreen not supported on this browser.');
+  }
+  function syncWakeBtn() {
+    if (!el.wakeBtn) return;
+    var supported = !!(navigator.wakeLock && navigator.wakeLock.request);
+    if (!supported) { el.wakeBtn.textContent = 'Stay Awake N/A'; return; }
+    el.wakeBtn.textContent = wakeLockWanted ? 'Awake On' : 'Stay Awake';
+  }
+  function requestWakeLock() {
+    if (!(navigator.wakeLock && navigator.wakeLock.request)) { syncWakeBtn(); return; }
+    try {
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLock = lock;
+        wakeLockWanted = true;
+        syncWakeBtn();
+        lock.addEventListener('release', function () { wakeLock = null; syncWakeBtn(); });
+      }).catch(function () { wakeLockWanted = false; syncWakeBtn(); });
+    } catch (e) { wakeLockWanted = false; syncWakeBtn(); }
+  }
+  function releaseWakeLock() {
+    wakeLockWanted = false;
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+    syncWakeBtn();
+  }
+  function toggleWakeLock() {
+    if (!(navigator.wakeLock && navigator.wakeLock.request)) { showTransientStatus('Wake lock not supported on this browser.'); syncWakeBtn(); return; }
+    if (wakeLockWanted) releaseWakeLock();
+    else requestWakeLock();
+  }
+
+  function resetIdleTimer() {
+    if (document.body.className.indexOf('ui-idle') !== -1) {
+      document.body.className = document.body.className.replace(/\bui-idle\b/g, '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    }
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (el.setupPanel && el.setupPanel.style.display === 'none') {
+        if (document.body.className.indexOf('ui-idle') === -1) document.body.className += ' ui-idle';
+      }
+    }, IDLE_MS);
+  }
+
   function bindEvents() {
     if (el.settingsToggle) el.settingsToggle.onclick = function () {
       var opening = el.setupPanel.style.display === 'none';
       el.setupPanel.style.display = opening ? 'block' : 'none';
       if (opening) { syncCurrentTokenDisplay(); setMessage(''); }
     };
+    if (el.fullscreenBtn) el.fullscreenBtn.onclick = function () { toggleFullscreen(); };
+    if (el.wakeBtn) el.wakeBtn.onclick = function () { toggleWakeLock(); };
+    if (el.prevBtn) el.prevBtn.onclick = function () {
+      apiFetch('/me/player/previous', 'POST', function (err) { if (err) showTransientStatus(err.message); else setTimeout(fetchNowPlaying, 400); });
+    };
+    if (el.nextBtn) el.nextBtn.onclick = function () {
+      apiFetch('/me/player/next', 'POST', function (err) { if (err) showTransientStatus(err.message); else setTimeout(fetchNowPlaying, 400); });
+    };
+    if (el.playpauseBtn) el.playpauseBtn.onclick = function () {
+      var playing = currentPlayback && currentPlayback.isPlaying;
+      apiFetch(playing ? '/me/player/pause' : '/me/player/play', 'PUT', function (err) {
+        if (err) showTransientStatus(err.message);
+        else setTimeout(fetchNowPlaying, 300);
+      });
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenBtn);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenBtn);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && wakeLockWanted && !wakeLock) requestWakeLock();
+    });
+    var activityEvents = ['mousemove', 'mousedown', 'touchstart', 'keydown'];
+    for (var i = 0; i < activityEvents.length; i++) {
+      document.addEventListener(activityEvents[i], resetIdleTimer, false);
+    }
 
     if (el.saveAccessToken) el.saveAccessToken.onclick = function () {
       var token = ((el.accessTokenInput && el.accessTokenInput.value) || (el.currentTokenDisplay && el.currentTokenDisplay.value) || '').replace(/^\s+|\s+$/g, '');
@@ -397,6 +501,9 @@
     applySourceVisibility();
     syncCurrentTokenDisplay();
     bindEvents();
+    syncFullscreenBtn();
+    syncWakeBtn();
+    resetIdleTimer();
 
     var token = getToken();
     if (token && token.access_token) {

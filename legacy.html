@@ -20,6 +20,8 @@
         <span class="brand-text">Now Playing</span>
       </div>
       <div class="header-actions">
+        <button id="wake-btn" class="btn btn-secondary" type="button">Stay Awake</button>
+        <button id="fullscreen-btn" class="btn btn-secondary" type="button">Fullscreen</button>
         <button id="settings-toggle" class="btn btn-secondary" type="button">Settings</button>
       </div>
     </div>
@@ -80,6 +82,11 @@
 
     <div class="footer">
       <p id="footer-status" class="footer-status"></p>
+      <div class="playback-controls" aria-label="Playback controls">
+        <button id="prev-btn" class="control-btn" type="button" aria-label="Previous track">Prev</button>
+        <button id="playpause-btn" class="control-btn control-btn-main" type="button" aria-label="Play">Play</button>
+        <button id="next-btn" class="control-btn" type="button" aria-label="Next track">Next</button>
+      </div>
       <p id="playback-source" class="playback-source"><span id="device-name"></span><span id="context-sep" class="context-sep" style="display:none;"> &middot; </span><span id="context-name"></span></p>
     </div>
   </div>

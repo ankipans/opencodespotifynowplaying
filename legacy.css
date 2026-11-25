@@ -7,7 +7,7 @@ button, input { font: inherit; }
 .bg-art { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: #000; }
 .bg-overlay { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.15); }
 
-.app { position: relative; z-index: 1; min-height: 100vh; padding: 24px; }
+.app { position: relative; z-index: 1; min-height: 100vh; padding: 12px; }
 .header { overflow: hidden; margin-bottom: 20px; }
 .brand { float: left; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ddd; padding-top: 10px; }
 .header-actions { float: right; }
@@ -44,7 +44,7 @@ button, input { font: inherit; }
 .album-art { width: 100%; max-width: 560px; height: auto; display: block; background: #111; }
 .art-placeholder { display: none; }
 .track-info { width: 55%; }
-.status-badge { margin: 0 0 12px; color: #bbb; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; }
+.status-badge { margin: 0 0 12px; color: #bbb; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; text-align: center; }
 .status-badge.playing { color: #fff; }
 .track-name { margin: 0 0 10px; font-size: 56px; line-height: 1.05; letter-spacing: -0.02em; word-wrap: break-word; }
 .track-artist { margin: 0 0 6px; font-size: 28px; color: #ddd; word-wrap: break-word; }
@@ -57,9 +57,15 @@ button, input { font: inherit; }
 #progress-current { float: left; }
 #progress-duration { float: right; }
 
-.footer { clear: both; margin-top: 20px; color: #aaa; font-size: 13px; text-align: center; }
+.footer { clear: both; margin-top: 20px; color: #aaa; font-size: 13px; text-align: center; padding-bottom: 8px; }
 .footer-status { margin: 0 0 4px; min-height: 1.2em; }
+.playback-controls { margin: 8px 0; text-align: center; }
+.control-btn { border: 1px solid #666; background: #1a1a1a; color: #fff; padding: 10px 16px; margin: 0 4px; cursor: pointer; font-size: 14px; }
+.control-btn-main { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
 .playback-source { margin: 0; color: #ccc; }
+body.ui-idle .header, body.ui-idle .playback-controls { visibility: hidden; }
+body.ui-idle { cursor: none; }
+body.setup-mode .playback-controls { display: none; }
 
 body.hide-art .art-wrap { display: none; }
 body.hide-art .track-info { display: block; width: 100%; text-align: center; }
@@ -72,4 +78,17 @@ body.hide-art .progress-wrap { margin-left: auto; margin-right: auto; }
   .track-name { font-size: 36px; }
   .track-artist { font-size: 22px; }
   .track-album { font-size: 18px; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .app { padding: 8px 12px; }
+  .player-layout { display: table; width: 100%; table-layout: fixed; }
+  .art-wrap { display: table-cell; width: 42%; padding-right: 20px; vertical-align: middle; margin-bottom: 0; }
+  .track-info { display: table-cell; width: 58%; vertical-align: middle; text-align: left; }
+  .album-art { max-width: 100%; }
+  .status-badge { text-align: center; }
+  .track-name { font-size: 28px; }
+  .track-artist { font-size: 18px; }
+  .track-album { font-size: 14px; }
+  .progress-wrap { margin-top: 12px; }
 }
