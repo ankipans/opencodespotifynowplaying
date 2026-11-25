@@ -120,12 +120,32 @@
     if (el.showArtToggle) el.showArtToggle.checked = !!show;
   }
 
-  function syncCurrentTokenDisplay() {
-    if (!el.currentTokenDisplay) return;
+  function getStoredAccessToken() {
     const token = getToken();
-    el.currentTokenDisplay.value = token && token.access_token ? token.access_token : '';
+    if (token && token.access_token) return String(token.access_token);
+    const keys = [STORAGE.token, 'access_token', 'spotify_access_token', 'token'];
+    for (const k of keys) {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && parsed.access_token) return String(parsed.access_token);
+        if (typeof parsed === 'string' && parsed.trim()) return parsed.trim();
+      } catch {}
+      const trimmed = raw.trim().replace(/^Bearer\s+/i, '');
+      if (trimmed) return trimmed;
+    }
+    return '';
+  }
+
+  function syncCurrentTokenDisplay() {
+    const display = el.currentTokenDisplay || document.getElementById('current-token-display');
+    if (!display) return;
+    const accessToken = getStoredAccessToken();
+    display.value = accessToken;
+    display.placeholder = accessToken ? '' : 'No active token';
     if (el.toggleTokenVisibility) {
-      el.currentTokenDisplay.type = 'password';
+      display.type = 'password';
       el.toggleTokenVisibility.textContent = 'Show';
     }
   }
@@ -138,8 +158,24 @@
 
   function getToken() {
     try {
-      const raw = localStorage.getItem(STORAGE.token);
-      return raw ? JSON.parse(raw) : null;
+      const keys = [STORAGE.token, 'access_token', 'spotify_access_token', 'token'];
+      let raw = null;
+      for (const k of keys) {
+        const v = localStorage.getItem(k);
+        if (v) { raw = v; break; }
+      }
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.access_token) return parsed;
+          // maybe object with different shape
+          if (parsed.accessToken) return { ...parsed, access_token: parsed.accessToken };
+        }
+      } catch {}
+      const trimmed = raw.trim().replace(/^Bearer\s+/i, '');
+      if (trimmed) return { access_token: trimmed, refresh_token: '', expires_at: Date.now() + 3600 * 1000, token_type: 'Bearer' };
+      return null;
     } catch {
       return null;
     }
