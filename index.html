@@ -89,11 +89,23 @@
         <input id="show-playlist-toggle" type="checkbox" checked>
         <span>Show playlist name</span>
       </label>
+      <label class="toggle-field">
+        <input id="show-art-toggle" type="checkbox" checked>
+        <span>Show album art</span>
+      </label>
       <div class="manual-token">
-        <h3 class="manual-token-title">Manual access token</h3>
-        <p class="muted small">For devices that can’t open Spotify login, paste an access token directly.</p>
+        <h3 class="manual-token-title">Access token</h3>
+        <p class="muted small">For devices that can’t open Spotify login, paste an access token directly. You can also view/copy the current session token.</p>
         <label class="field">
-          <span>Access token</span>
+          <span>Current session token</span>
+          <div class="copy-row">
+            <input id="current-token-display" type="password" readonly autocomplete="off" spellcheck="false" placeholder="No active token">
+            <button id="toggle-token-visibility" class="btn btn-secondary" type="button">Show</button>
+            <button id="copy-current-token" class="btn btn-secondary" type="button">Copy</button>
+          </div>
+        </label>
+        <label class="field">
+          <span>Paste access token manually</span>
           <input id="access-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste Spotify access token">
         </label>
         <div class="setup-actions">

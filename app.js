@@ -16,6 +16,7 @@
     showControls: 'sp_show_controls',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist',
+    showArt: 'sp_show_art',
   };
 
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -33,8 +34,12 @@
     showControlsToggle: document.getElementById('show-controls-toggle'),
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
+    showArtToggle: document.getElementById('show-art-toggle'),
     accessTokenInput: document.getElementById('access-token-input'),
     saveAccessToken: document.getElementById('save-access-token'),
+    currentTokenDisplay: document.getElementById('current-token-display'),
+    toggleTokenVisibility: document.getElementById('toggle-token-visibility'),
+    copyCurrentToken: document.getElementById('copy-current-token'),
     setupMessage: document.getElementById('setup-message'),
     loginBtn: document.getElementById('login-btn'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -100,9 +105,29 @@
     return v === null ? true : v === '1';
   }
 
+  function getShowArt() {
+    const v = localStorage.getItem(STORAGE.showArt);
+    return v === null ? true : v === '1';
+  }
+
   function applyShowControls(show) {
     document.body.classList.toggle('hide-controls', !show);
     if (el.showControlsToggle) el.showControlsToggle.checked = !!show;
+  }
+
+  function applyShowArt(show) {
+    document.body.classList.toggle('hide-art', !show);
+    if (el.showArtToggle) el.showArtToggle.checked = !!show;
+  }
+
+  function syncCurrentTokenDisplay() {
+    if (!el.currentTokenDisplay) return;
+    const token = getToken();
+    el.currentTokenDisplay.value = token && token.access_token ? token.access_token : '';
+    if (el.toggleTokenVisibility) {
+      el.currentTokenDisplay.type = 'password';
+      el.toggleTokenVisibility.textContent = 'Show';
+    }
   }
 
   function applySourceVisibility() {
@@ -122,10 +147,12 @@
 
   function setToken(token) {
     localStorage.setItem(STORAGE.token, JSON.stringify(token));
+    syncCurrentTokenDisplay();
   }
 
   function clearToken() {
     localStorage.removeItem(STORAGE.token);
+    syncCurrentTokenDisplay();
   }
 
   function clearAllData() {
@@ -830,6 +857,7 @@
       if (opening) {
         el.setupPanel.hidden = false;
         el.clientIdInput.value = getClientId();
+        syncCurrentTokenDisplay();
         setMessage('');
       } else {
         el.setupPanel.hidden = true;
@@ -876,6 +904,7 @@
           manual: true,
         });
         el.accessTokenInput.value = '';
+        syncCurrentTokenDisplay();
         setMessage('Access token saved. It may expire in about an hour.', 'success');
         showPanel('player');
         startPolling();
@@ -915,6 +944,35 @@
         applySourceVisibility();
       });
     }
+    if (el.showArtToggle) {
+      el.showArtToggle.addEventListener('change', () => {
+        const show = el.showArtToggle.checked;
+        localStorage.setItem(STORAGE.showArt, show ? '1' : '0');
+        applyShowArt(show);
+      });
+    }
+    if (el.toggleTokenVisibility) {
+      el.toggleTokenVisibility.addEventListener('click', () => {
+        if (!el.currentTokenDisplay) return;
+        const hidden = el.currentTokenDisplay.type === 'password';
+        el.currentTokenDisplay.type = hidden ? 'text' : 'password';
+        el.toggleTokenVisibility.textContent = hidden ? 'Hide' : 'Show';
+      });
+    }
+    if (el.copyCurrentToken) {
+      el.copyCurrentToken.addEventListener('click', async () => {
+        const token = getToken();
+        const value = token && token.access_token ? token.access_token : '';
+        if (!value) { setMessage('No active session token.', 'error'); return; }
+        try {
+          await navigator.clipboard.writeText(value);
+          el.copyCurrentToken.textContent = 'Copied!';
+          setTimeout(() => { el.copyCurrentToken.textContent = 'Copy'; }, 1500);
+        } catch {
+          setMessage('Could not copy token automatically.', 'error');
+        }
+      });
+    }
 
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
@@ -940,8 +998,10 @@
     el.redirectUri.textContent = REDIRECT_URI;
     el.clientIdInput.value = getClientId();
     applyShowControls(getShowControls());
+    applyShowArt(getShowArt());
     renderNothingPlaying();
     applySourceVisibility();
+    syncCurrentTokenDisplay();
     initEvents();
     syncFullscreenButton();
     syncWakeLockButton();

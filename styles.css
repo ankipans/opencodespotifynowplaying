@@ -149,6 +149,17 @@ body.ui-idle .header {
   word-break: break-all;
   color: var(--fg);
 }
+.copy-row input {
+  flex: 1;
+  padding: 12px 14px;
+  background: rgba(var(--fg-rgb),0.06);
+  border: 1px solid rgba(var(--fg-rgb),0.1);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: var(--fg);
+  min-width: 0;
+  font-family: inherit;
+}
 .field { display: block; margin-bottom: 16px; }
 .field span { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; color: var(--muted); }
 .toggle-field {
@@ -318,6 +329,15 @@ body.ui-idle .playback-controls {
 body.hide-controls .playback-controls {
   display: none !important;
 }
+body.hide-art .art-wrap { display: none !important; }
+body.hide-art .player-layout {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+}
+body.hide-art .track-info { align-items: center; }
+body.hide-art .status-row { justify-content: center; }
+body.hide-art .progress-wrap { max-width: 560px; }
 .control-btn {
   display: inline-grid;
   place-items: center;
