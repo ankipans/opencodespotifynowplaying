@@ -1078,7 +1078,36 @@
     bind('nexttrack', () => { controlPlayback('next').catch(console.error); });
   }
 
+  const silentAudio = (() => {
+    let audio = null;
+    let wantPlaying = false;
+    function ensure() {
+      if (audio) return audio;
+      audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+      audio.loop = true;
+      audio.volume = 0;
+      audio.preload = 'auto';
+      return audio;
+    }
+    function sync() {
+      const a = ensure();
+      if (wantPlaying) {
+        const p = a.play();
+        if (p && p.catch) p.catch(() => {});
+      } else {
+        try { a.pause(); } catch (e) {}
+      }
+    }
+    document.addEventListener('pointerdown', sync, { passive: true });
+    document.addEventListener('keydown', sync, { passive: true });
+    return function setPlaying(isPlaying) {
+      wantPlaying = !!isPlaying;
+      sync();
+    };
+  })();
+
   function updateMediaSession(data, item, image) {
+    silentAudio(!!(data && data.is_playing));
     if (!('mediaSession' in navigator)) return;
     if (!data || !item) {
       navigator.mediaSession.metadata = null;
