@@ -175,7 +175,8 @@ body.ui-idle .header {
   height: 18px;
   accent-color: var(--fg);
 }
-.field input {
+.field input,
+.field select {
   width: 100%;
   padding: 12px 14px;
   border-radius: 10px;
@@ -183,7 +184,8 @@ body.ui-idle .header {
   background: rgba(var(--fg-rgb),0.06);
   color: var(--fg);
 }
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: 2px solid rgba(var(--fg-rgb),0.45);
   outline-offset: 1px;
   border-color: rgba(var(--fg-rgb),0.3);
@@ -461,6 +463,41 @@ body.hide-art .progress-wrap { max-width: 560px; width: 100%; }
 }
 .link-btn:hover { color: var(--fg); text-decoration-color: currentColor; }
 
+/* Legacy look theme */
+body.theme-legacy {
+  --bg-color: #000;
+  --fg: #fff;
+  --fg-rgb: 255,255,255;
+  --muted: #bbb;
+  --muted-2: #999;
+  --panel: #111;
+  --panel-border: #333;
+  --btn-primary-bg: #fff;
+  --btn-primary-fg: #000;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+body.theme-legacy .bg-art,
+body.theme-legacy .bg-overlay { background: #000 !important; opacity: 1 !important; }
+body.theme-legacy .panel { border-radius: 0; background: #111; border: 1px solid #333; box-shadow: none; backdrop-filter: none; }
+body.theme-legacy .btn,
+body.theme-legacy .icon-btn,
+body.theme-legacy .field input,
+body.theme-legacy .field select,
+body.theme-legacy .control-btn,
+body.theme-legacy .art-wrap,
+body.theme-legacy .copy-value,
+body.theme-legacy .copy-row input { border-radius: 0 !important; }
+body.theme-legacy .btn-primary { background: #fff; color: #000; }
+body.theme-legacy .btn-secondary { background: #222; color: #fff; border-color: #555; }
+body.theme-legacy .icon-btn { background: #222; border: 1px solid #555; box-shadow: none; }
+body.theme-legacy .art-wrap { box-shadow: none; border: 1px solid #333; background: #111; }
+body.theme-legacy .progress-bar { height: 4px; background: #333; border-radius: 0; }
+body.theme-legacy .progress-fill { background: #fff; border-radius: 0; }
+body.theme-legacy .control-btn { background: #1a1a1a; border-color: #666; }
+body.theme-legacy .control-btn-main { background: #fff; color: #000; border-color: #fff; }
+body.theme-legacy .brand { opacity: 1; color: #ddd; }
+body.theme-legacy .track-name { letter-spacing: -0.02em; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .player-layout {
@@ -510,6 +547,8 @@ body.hide-art .progress-wrap { max-width: 560px; width: 100%; }
   .art-wrap { width: 100%; max-width: min(72vh, 42vw); }
   .track-info { align-items: flex-start; }
   .status-row { justify-content: flex-start; width: 100%; }
+  body.hide-art .track-info { align-items: center; }
+  body.hide-art .status-row { justify-content: center; }
   .track-name { font-size: clamp(1.4rem, 4.5vw, 2.8rem); }
   .track-artist { font-size: clamp(0.95rem, 2.4vw, 1.3rem); }
   .track-album { font-size: clamp(0.85rem, 2vw, 1.1rem); }

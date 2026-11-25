@@ -17,6 +17,7 @@
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist',
     showArt: 'sp_show_art',
+    theme: 'sp_theme',
   };
 
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -31,6 +32,7 @@
     clientIdInput: document.getElementById('client-id-input'),
     saveClientId: document.getElementById('save-client-id'),
     clearData: document.getElementById('clear-data'),
+    themeSelect: document.getElementById('theme-select'),
     showControlsToggle: document.getElementById('show-controls-toggle'),
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
@@ -109,6 +111,16 @@
   function getShowArt() {
     const v = localStorage.getItem(STORAGE.showArt);
     return v === null ? true : v === '1';
+  }
+
+  function getTheme() {
+    return localStorage.getItem(STORAGE.theme) === 'legacy' ? 'legacy' : 'modern';
+  }
+
+  function applyTheme(theme) {
+    const t = theme === 'legacy' ? 'legacy' : 'modern';
+    document.body.classList.toggle('theme-legacy', t === 'legacy');
+    if (el.themeSelect) el.themeSelect.value = t;
   }
 
   function applyShowControls(show) {
@@ -1056,6 +1068,13 @@
         applyShowArt(show);
       });
     }
+    if (el.themeSelect) {
+      el.themeSelect.addEventListener('change', () => {
+        const theme = el.themeSelect.value === 'legacy' ? 'legacy' : 'modern';
+        localStorage.setItem(STORAGE.theme, theme);
+        applyTheme(theme);
+      });
+    }
     if (el.toggleTokenVisibility) {
       el.toggleTokenVisibility.addEventListener('click', () => {
         if (!el.currentTokenDisplay) return;
@@ -1102,6 +1121,7 @@
   async function init() {
     el.redirectUri.textContent = REDIRECT_URI;
     el.clientIdInput.value = getClientId();
+    applyTheme(getTheme());
     applyShowControls(getShowControls());
     applyShowArt(getShowArt());
     renderNothingPlaying();
