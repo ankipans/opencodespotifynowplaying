@@ -89,6 +89,16 @@
         <input id="show-playlist-toggle" type="checkbox" checked>
         <span>Show playlist name</span>
       </label>
+      <div class="manual-token">
+        <label class="field">
+          <span>Manual access token (for devices without Spotify login)</span>
+          <input id="access-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste Spotify access token">
+        </label>
+        <div class="setup-actions">
+          <button id="save-access-token" class="btn btn-secondary" type="button">Use access token</button>
+        </div>
+        <p class="muted small">Manual tokens expire (usually ~1 hour) and may need to be pasted again.</p>
+      </div>
       <div class="setup-actions">
         <button id="save-client-id" class="btn btn-primary" type="button">Save Client ID</button>
         <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>

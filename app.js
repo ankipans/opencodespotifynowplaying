@@ -33,6 +33,8 @@
     showControlsToggle: document.getElementById('show-controls-toggle'),
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
+    accessTokenInput: document.getElementById('access-token-input'),
+    saveAccessToken: document.getElementById('save-access-token'),
     setupMessage: document.getElementById('setup-message'),
     loginBtn: document.getElementById('login-btn'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -858,12 +860,35 @@
       }
     });
 
+    if (el.saveAccessToken) {
+      el.saveAccessToken.addEventListener('click', () => {
+        const token = (el.accessTokenInput.value || '').trim();
+        if (!token) {
+          setMessage('Please paste an access token.', 'error');
+          return;
+        }
+        setToken({
+          access_token: token,
+          refresh_token: '',
+          expires_at: Date.now() + 55 * 60 * 1000,
+          scope: '',
+          token_type: 'Bearer',
+          manual: true,
+        });
+        el.accessTokenInput.value = '';
+        setMessage('Access token saved. It may expire in about an hour.', 'success');
+        showPanel('player');
+        startPolling();
+      });
+    }
+
     el.clearData.addEventListener('click', () => {
       const ok = window.confirm('Clear stored Client ID and Spotify tokens from this browser?');
       if (!ok) return;
       stopPolling();
       clearAllData();
       el.clientIdInput.value = '';
+      if (el.accessTokenInput) el.accessTokenInput.value = '';
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
       if (el.logoutBtn) el.logoutBtn.hidden = true;
@@ -928,16 +953,16 @@
     const clientId = getClientId();
     const token = getToken();
 
+    if (token) {
+      showPanel('player');
+      startPolling();
+      return;
+    }
+
     if (!clientId) {
       showPanel('setup');
       el.setupPanel.hidden = false;
       showTransientStatus('Setup required.', 3000);
-      return;
-    }
-
-    if (token) {
-      showPanel('player');
-      startPolling();
       return;
     }
 

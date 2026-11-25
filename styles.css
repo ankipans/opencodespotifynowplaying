@@ -178,6 +178,12 @@ body.ui-idle .header {
   border-color: rgba(var(--fg-rgb),0.3);
 }
 .setup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.manual-token {
+  margin: 20px 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(var(--fg-rgb), 0.12);
+}
+.manual-token .small { margin: 10px 0 0; }
 
 .btn {
   appearance: none;
