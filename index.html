@@ -27,6 +27,10 @@
   </div>
 
   <main class="app">
+    <div id="top-clock" class="top-clock" hidden aria-live="off">
+      <span id="top-clock-time" class="top-clock-time"></span>
+      <span id="top-clock-date" class="top-clock-date"></span>
+    </div>
     <header class="header">
       <div class="brand" aria-label="Spotify Now Playing">
         <svg class="brand-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -103,6 +107,10 @@
         <label class="toggle-field">
           <input id="show-progress-toggle" type="checkbox" checked>
           <span>Show progress bar</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-clock-toggle" type="checkbox">
+          <span>Always show date and time</span>
         </label>
       </div>
 

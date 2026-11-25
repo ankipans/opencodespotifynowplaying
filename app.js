@@ -20,6 +20,7 @@
     showStatus: 'sp_show_status',
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
+    showClock: 'sp_show_clock',
     theme: 'sp_theme',
   };
 
@@ -43,6 +44,10 @@
     showStatusToggle: document.getElementById('show-status-toggle'),
     showAlbumToggle: document.getElementById('show-album-toggle'),
     showProgressToggle: document.getElementById('show-progress-toggle'),
+    showClockToggle: document.getElementById('show-clock-toggle'),
+    topClock: document.getElementById('top-clock'),
+    topClockTime: document.getElementById('top-clock-time'),
+    topClockDate: document.getElementById('top-clock-date'),
     accessTokenInput: document.getElementById('access-token-input'),
     saveAccessToken: document.getElementById('save-access-token'),
     currentTokenDisplay: document.getElementById('current-token-display'),
@@ -83,6 +88,7 @@
   let wakeLockWanted = false;
   let statusTimer = null;
   let idleTimer = null;
+  let clockTimer = null;
   const IDLE_MS = (window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches)) ? 10000 : 5000;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
@@ -167,6 +173,28 @@
   function applyShowProgress(show) {
     document.body.classList.toggle('hide-progress', !show);
     if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
+  }
+
+  function getShowClock() {
+    const v = localStorage.getItem(STORAGE.showClock);
+    return v === '1';
+  }
+
+  function updateClock() {
+    if (!el.topClock || el.topClock.hidden) return;
+    const now = new Date();
+    if (el.topClockTime) el.topClockTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (el.topClockDate) el.topClockDate.textContent = now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function applyShowClock(show) {
+    if (el.topClock) el.topClock.hidden = !show;
+    if (el.showClockToggle) el.showClockToggle.checked = !!show;
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+    if (show) {
+      updateClock();
+      clockTimer = setInterval(updateClock, 1000);
+    }
   }
 
   function getStoredAccessToken() {
@@ -1071,6 +1099,15 @@
       clearAllData();
       el.clientIdInput.value = '';
       if (el.accessTokenInput) el.accessTokenInput.value = '';
+      applyShowControls(true);
+      applyShowDevice(true);
+      applyShowPlaylist(true);
+      applyShowArt(true);
+      applyShowStatus(true);
+      applyShowAlbum(true);
+      applyShowProgress(true);
+      applyShowClock(false);
+      applyUiTheme(DEFAULT_UI_THEME);
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
       if (el.logoutBtn) el.logoutBtn.hidden = true;
@@ -1123,6 +1160,13 @@
         const show = el.showProgressToggle.checked;
         localStorage.setItem(STORAGE.showProgress, show ? '1' : '0');
         applyShowProgress(show);
+      });
+    }
+    if (el.showClockToggle) {
+      el.showClockToggle.addEventListener('change', () => {
+        const show = el.showClockToggle.checked;
+        localStorage.setItem(STORAGE.showClock, show ? '1' : '0');
+        applyShowClock(show);
       });
     }
     if (el.themeSelect) {
@@ -1184,6 +1228,7 @@
     applyShowStatus(getShowStatus());
     applyShowAlbum(getShowAlbum());
     applyShowProgress(getShowProgress());
+    applyShowClock(getShowClock());
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

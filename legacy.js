@@ -10,6 +10,7 @@
     showStatus: 'sp_show_status',
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
+    showClock: 'sp_show_clock',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -28,6 +29,10 @@
     showStatusToggle: $('show-status-toggle'),
     showAlbumToggle: $('show-album-toggle'),
     showProgressToggle: $('show-progress-toggle'),
+    showClockToggle: $('show-clock-toggle'),
+    topClock: $('top-clock'),
+    topClockTime: $('top-clock-time'),
+    topClockDate: $('top-clock-date'),
     showDeviceToggle: $('show-device-toggle'),
     showPlaylistToggle: $('show-playlist-toggle'),
     setupMessage: $('setup-message'),
@@ -51,6 +56,7 @@
   };
 
   var pollTimer = null;
+  var clockTimer = null;
   var progressTimer = null;
   var isFetching = false;
   var currentPlayback = null;
@@ -217,6 +223,25 @@
     if (show) document.body.className = document.body.className.replace(/\bhide-progress\b/g, '');
     else if (document.body.className.indexOf('hide-progress') === -1) document.body.className += ' hide-progress';
     if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
+  }
+
+  function updateClock() {
+    if (!el.topClock || el.topClock.style.display === 'none') return;
+    var now = new Date();
+    var time = now.toLocaleTimeString ? now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : now.toTimeString().slice(0, 5);
+    var date = now.toLocaleDateString ? now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : now.toDateString();
+    if (el.topClockTime) el.topClockTime.textContent = time;
+    if (el.topClockDate) el.topClockDate.textContent = date;
+  }
+
+  function applyShowClock(show) {
+    if (el.topClock) el.topClock.style.display = show ? 'block' : 'none';
+    if (el.showClockToggle) el.showClockToggle.checked = !!show;
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+    if (show) {
+      updateClock();
+      clockTimer = setInterval(updateClock, 1000);
+    }
   }
 
   function renderPlaybackSource(deviceName, contextName) {
@@ -433,9 +458,16 @@
       removeStored(STORAGE.showStatus);
       removeStored(STORAGE.showAlbum);
       removeStored(STORAGE.showProgress);
+      removeStored(STORAGE.showClock);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
+      applyShowArt(true);
+      applyShowStatus(true);
+      applyShowAlbum(true);
+      applyShowProgress(true);
+      applyShowClock(false);
+      applySourceVisibility();
       renderNothingPlaying('Paste an access token in Settings to see your playback.');
       showPanel('setup');
       syncCurrentTokenDisplay();
@@ -469,6 +501,11 @@
       setStored(STORAGE.showProgress, show ? '1' : '0');
       applyShowProgress(show);
     };
+    if (el.showClockToggle) el.showClockToggle.onchange = function () {
+      var show = !!el.showClockToggle.checked;
+      setStored(STORAGE.showClock, show ? '1' : '0');
+      applyShowClock(show);
+    };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
       applySourceVisibility();
@@ -484,6 +521,7 @@
     applyShowStatus(getBool(STORAGE.showStatus, true));
     applyShowAlbum(getBool(STORAGE.showAlbum, true));
     applyShowProgress(getBool(STORAGE.showProgress, true));
+    applyShowClock(getBool(STORAGE.showClock, false));
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();
