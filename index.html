@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotify Now Playing</title>
   <meta name="description" content="Display your current Spotify playback status.">
+  <script>
+    (function () {
+      var legacy = !window.fetch || !window.Promise || !window.URLSearchParams ||
+        !window.CSS || !window.CSS.supports || !CSS.supports('display', 'grid') || !CSS.supports('--a:0');
+      if (legacy && !/legacy\.html$/.test(location.pathname)) {
+        location.replace('./legacy.html' + location.search + location.hash);
+      }
+    })();
+  </script>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

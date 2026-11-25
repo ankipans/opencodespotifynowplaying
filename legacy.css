@@ -1,0 +1,75 @@
+html, body { margin: 0; padding: 0; min-height: 100%; background: #000; color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+body { overflow-x: hidden; }
+*, *:before, *:after { -webkit-box-sizing: border-box; box-sizing: border-box; }
+button, input { font: inherit; }
+
+.bg { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; background: #000; }
+.bg-art { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: #000; }
+.bg-overlay { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.15); }
+
+.app { position: relative; z-index: 1; min-height: 100vh; padding: 24px; }
+.header { overflow: hidden; margin-bottom: 20px; }
+.brand { float: left; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ddd; padding-top: 10px; }
+.header-actions { float: right; }
+
+.panel { background: #111; border: 1px solid #333; padding: 20px; max-width: 760px; margin: 0 auto 20px; }
+.panel h2 { margin: 0 0 10px; font-size: 28px; }
+.muted { color: #bbb; }
+.small { font-size: 13px; }
+.field { display: block; margin-bottom: 14px; }
+.field span { display: block; margin-bottom: 6px; color: #ccc; font-size: 14px; }
+.field input[type="password"], .field input[type="text"] {
+  width: 100%; padding: 10px 12px; color: #fff; background: #1a1a1a; border: 1px solid #444;
+}
+.copy-row { overflow: hidden; }
+.copy-row input { float: left; width: 70%; width: calc(100% - 90px); }
+.copy-row .btn { float: right; width: 80px; }
+
+.btn { border: 1px solid #555; background: #222; color: #fff; padding: 10px 14px; cursor: pointer; }
+.btn-primary { background: #fff; color: #000; border-color: #fff; }
+.btn-danger { background: #2a0000; color: #ff9999; border-color: #662222; }
+.setup-actions { margin: 12px 0; }
+.setup-actions .btn { margin-right: 8px; margin-bottom: 8px; }
+.toggles { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
+.toggle-field { display: block; margin-bottom: 10px; color: #ddd; }
+.toggle-field input { margin-right: 8px; }
+.message { min-height: 1.2em; color: #ccc; }
+.message.error { color: #ff9999; }
+.message.success { color: #fff; }
+
+.player-panel { max-width: 1400px; margin: 0 auto; padding: 20px 0; }
+.player-layout { display: table; width: 100%; table-layout: fixed; }
+.art-wrap, .track-info { display: table-cell; vertical-align: middle; }
+.art-wrap { width: 45%; padding-right: 32px; position: relative; }
+.album-art { width: 100%; max-width: 560px; height: auto; display: block; background: #111; }
+.art-placeholder { display: none; }
+.track-info { width: 55%; }
+.status-badge { margin: 0 0 12px; color: #bbb; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; }
+.status-badge.playing { color: #fff; }
+.track-name { margin: 0 0 10px; font-size: 56px; line-height: 1.05; letter-spacing: -0.02em; word-wrap: break-word; }
+.track-artist { margin: 0 0 6px; font-size: 28px; color: #ddd; word-wrap: break-word; }
+.track-album { margin: 0; font-size: 20px; color: #bbb; word-wrap: break-word; }
+
+.progress-wrap { margin-top: 28px; max-width: 560px; }
+.progress-bar { width: 100%; height: 4px; background: #333; }
+.progress-fill { width: 0; height: 100%; background: #fff; }
+.progress-times { margin-top: 8px; font-size: 12px; color: #bbb; overflow: hidden; }
+#progress-current { float: left; }
+#progress-duration { float: right; }
+
+.footer { clear: both; margin-top: 20px; color: #aaa; font-size: 13px; text-align: center; }
+.footer-status { margin: 0 0 4px; min-height: 1.2em; }
+.playback-source { margin: 0; color: #ccc; }
+
+body.hide-art .art-wrap { display: none; }
+body.hide-art .track-info { display: block; width: 100%; text-align: center; }
+body.hide-art .progress-wrap { margin-left: auto; margin-right: auto; }
+
+@media (max-width: 800px) {
+  .player-layout, .art-wrap, .track-info { display: block; width: 100%; }
+  .art-wrap { padding-right: 0; margin-bottom: 20px; }
+  .album-art { max-width: 420px; margin: 0 auto; }
+  .track-name { font-size: 36px; }
+  .track-artist { font-size: 22px; }
+  .track-album { font-size: 18px; }
+}
