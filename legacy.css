@@ -31,6 +31,8 @@ button, input { font: inherit; }
 .setup-actions { margin: 12px 0; }
 .setup-actions .btn { margin-right: 8px; margin-bottom: 8px; }
 .toggles { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
+.settings-group-title { margin: 0 0 10px; font-size: 16px; color: #fff; }
+.manual-token { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
 .toggle-field { display: block; margin-bottom: 10px; color: #ddd; }
 .toggle-field input { margin-right: 8px; }
 .message { min-height: 1.2em; color: #ccc; }
@@ -70,6 +72,9 @@ body.setup-mode .playback-controls { display: none; }
 body.hide-art .art-wrap { display: none; }
 body.hide-art .track-info { display: block; width: 100%; text-align: center; }
 body.hide-art .progress-wrap { margin-left: auto; margin-right: auto; }
+body.hide-status .status-badge { display: none; }
+body.hide-album .track-album { display: none; }
+body.hide-progress .progress-wrap { display: none; }
 
 @media (max-width: 800px) {
   .player-layout, .art-wrap, .track-info { display: block; width: 100%; }

@@ -7,6 +7,9 @@
   var STORAGE = {
     token: 'sp_token',
     showArt: 'sp_show_art',
+    showStatus: 'sp_show_status',
+    showAlbum: 'sp_show_album',
+    showProgress: 'sp_show_progress',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -22,6 +25,9 @@
     currentTokenDisplay: $('current-token-display'),
     toggleTokenVisibility: $('toggle-token-visibility'),
     showArtToggle: $('show-art-toggle'),
+    showStatusToggle: $('show-status-toggle'),
+    showAlbumToggle: $('show-album-toggle'),
+    showProgressToggle: $('show-progress-toggle'),
     showDeviceToggle: $('show-device-toggle'),
     showPlaylistToggle: $('show-playlist-toggle'),
     setupMessage: $('setup-message'),
@@ -193,6 +199,24 @@
     if (show) document.body.className = document.body.className.replace(/\bhide-art\b/g, '');
     else if (document.body.className.indexOf('hide-art') === -1) document.body.className += ' hide-art';
     if (el.showArtToggle) el.showArtToggle.checked = !!show;
+  }
+
+  function applyShowStatus(show) {
+    if (show) document.body.className = document.body.className.replace(/\bhide-status\b/g, '');
+    else if (document.body.className.indexOf('hide-status') === -1) document.body.className += ' hide-status';
+    if (el.showStatusToggle) el.showStatusToggle.checked = !!show;
+  }
+
+  function applyShowAlbum(show) {
+    if (show) document.body.className = document.body.className.replace(/\bhide-album\b/g, '');
+    else if (document.body.className.indexOf('hide-album') === -1) document.body.className += ' hide-album';
+    if (el.showAlbumToggle) el.showAlbumToggle.checked = !!show;
+  }
+
+  function applyShowProgress(show) {
+    if (show) document.body.className = document.body.className.replace(/\bhide-progress\b/g, '');
+    else if (document.body.className.indexOf('hide-progress') === -1) document.body.className += ' hide-progress';
+    if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
   }
 
   function renderPlaybackSource(deviceName, contextName) {
@@ -406,6 +430,9 @@
       stopPolling();
       removeStored(STORAGE.token);
       removeStored(STORAGE.showArt);
+      removeStored(STORAGE.showStatus);
+      removeStored(STORAGE.showAlbum);
+      removeStored(STORAGE.showProgress);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
@@ -427,6 +454,21 @@
       setStored(STORAGE.showArt, show ? '1' : '0');
       applyShowArt(show);
     };
+    if (el.showStatusToggle) el.showStatusToggle.onchange = function () {
+      var show = !!el.showStatusToggle.checked;
+      setStored(STORAGE.showStatus, show ? '1' : '0');
+      applyShowStatus(show);
+    };
+    if (el.showAlbumToggle) el.showAlbumToggle.onchange = function () {
+      var show = !!el.showAlbumToggle.checked;
+      setStored(STORAGE.showAlbum, show ? '1' : '0');
+      applyShowAlbum(show);
+    };
+    if (el.showProgressToggle) el.showProgressToggle.onchange = function () {
+      var show = !!el.showProgressToggle.checked;
+      setStored(STORAGE.showProgress, show ? '1' : '0');
+      applyShowProgress(show);
+    };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
       applySourceVisibility();
@@ -439,6 +481,9 @@
 
   function init() {
     applyShowArt(getBool(STORAGE.showArt, true));
+    applyShowStatus(getBool(STORAGE.showStatus, true));
+    applyShowAlbum(getBool(STORAGE.showAlbum, true));
+    applyShowProgress(getBool(STORAGE.showProgress, true));
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

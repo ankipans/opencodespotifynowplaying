@@ -26,29 +26,36 @@
 
     <div id="setup-panel" class="panel">
       <h2>Setup</h2>
-      <p class="muted">Legacy mode for older browsers. Spotify login (PKCE) is not supported here; use a manual access token.</p>
-
-      <label class="field">
-        <span>Current session token</span>
-        <div class="copy-row">
-          <input id="current-token-display" type="password" autocomplete="off" spellcheck="false" placeholder="No active token">
-          <button id="toggle-token-visibility" class="btn btn-secondary" type="button">Show</button>
-        </div>
-      </label>
-
-      <label class="field">
-        <span>Paste access token manually</span>
-        <input id="access-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste Spotify access token">
-      </label>
-      <div class="setup-actions">
-        <button id="save-access-token" class="btn btn-primary" type="button">Use access token</button>
-        <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>
-      </div>
+      <p class="muted">Legacy mode for older browsers. Cosmetic settings are at the top; token settings below.</p>
 
       <div class="toggles">
+        <h3 class="settings-group-title">Appearance</h3>
         <label class="toggle-field"><input id="show-art-toggle" type="checkbox" checked> <span>Show album art</span></label>
+        <label class="toggle-field"><input id="show-status-toggle" type="checkbox" checked> <span>Show status</span></label>
+        <label class="toggle-field"><input id="show-album-toggle" type="checkbox" checked> <span>Show album name</span></label>
+        <label class="toggle-field"><input id="show-progress-toggle" type="checkbox" checked> <span>Show progress bar</span></label>
         <label class="toggle-field"><input id="show-device-toggle" type="checkbox" checked> <span>Show device name</span></label>
         <label class="toggle-field"><input id="show-playlist-toggle" type="checkbox" checked> <span>Show playlist name</span></label>
+      </div>
+
+      <div class="manual-token">
+        <h3 class="settings-group-title">Access token</h3>
+        <label class="field">
+          <span>Current session token</span>
+          <div class="copy-row">
+            <input id="current-token-display" type="password" autocomplete="off" spellcheck="false" placeholder="No active token">
+            <button id="toggle-token-visibility" class="btn btn-secondary" type="button">Show</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Paste access token manually</span>
+          <input id="access-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste Spotify access token">
+        </label>
+        <div class="setup-actions">
+          <button id="save-access-token" class="btn btn-primary" type="button">Use access token</button>
+          <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>
+        </div>
       </div>
 
       <p id="setup-message" class="message"></p>

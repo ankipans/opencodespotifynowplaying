@@ -37,15 +37,7 @@
       <div class="header-actions">
         <button id="wakelock-btn" class="icon-btn" type="button" aria-label="Keep screen awake" title="Keep screen awake" aria-pressed="false">
           <svg class="icon-awake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
         <button id="fullscreen-btn" class="icon-btn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
@@ -73,42 +65,68 @@
 
     <section id="setup-panel" class="panel setup-panel" hidden>
       <h2>Setup</h2>
-      <p class="muted">Create a Spotify app and use this page as the redirect URI. Your Client ID is stored only in this browser.</p>
-      <ol class="setup-steps">
-        <li>Go to the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a> and create an app.</li>
-        <li>Add this exact Redirect URI in the app settings:</li>
-      </ol>
-      <div class="copy-row">
-        <code id="redirect-uri" class="copy-value"></code>
-        <button id="copy-redirect" class="btn btn-secondary" type="button">Copy</button>
+      <p class="muted">Adjust appearance first, then connect Spotify below.</p>
+
+      <div class="settings-group">
+        <h3 class="settings-group-title">Appearance</h3>
+        <label class="field">
+          <span>Theme</span>
+          <select id="theme-select">
+            <option value="modern">Modern</option>
+            <option value="legacy">Legacy look</option>
+          </select>
+        </label>
+        <label class="toggle-field">
+          <input id="show-controls-toggle" type="checkbox" checked>
+          <span>Show playback controls</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-device-toggle" type="checkbox" checked>
+          <span>Show device name</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-playlist-toggle" type="checkbox" checked>
+          <span>Show playlist name</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-art-toggle" type="checkbox" checked>
+          <span>Show album art</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-status-toggle" type="checkbox" checked>
+          <span>Show status</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-album-toggle" type="checkbox" checked>
+          <span>Show album name</span>
+        </label>
+        <label class="toggle-field">
+          <input id="show-progress-toggle" type="checkbox" checked>
+          <span>Show progress bar</span>
+        </label>
       </div>
-      <label class="field">
-        <span>Spotify Client ID</span>
-        <input id="client-id-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your Client ID">
-      </label>
-      <label class="field">
-        <span>Theme</span>
-        <select id="theme-select">
-          <option value="modern">Modern</option>
-          <option value="legacy">Legacy look</option>
-        </select>
-      </label>
-      <label class="toggle-field">
-        <input id="show-controls-toggle" type="checkbox" checked>
-        <span>Show playback controls</span>
-      </label>
-      <label class="toggle-field">
-        <input id="show-device-toggle" type="checkbox" checked>
-        <span>Show device name</span>
-      </label>
-      <label class="toggle-field">
-        <input id="show-playlist-toggle" type="checkbox" checked>
-        <span>Show playlist name</span>
-      </label>
-      <label class="toggle-field">
-        <input id="show-art-toggle" type="checkbox" checked>
-        <span>Show album art</span>
-      </label>
+
+      <div class="settings-group">
+        <h3 class="settings-group-title">Connection</h3>
+        <p class="muted small">Create a Spotify app and use this page as the redirect URI. Your Client ID is stored only in this browser.</p>
+        <ol class="setup-steps">
+          <li>Go to the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a> and create an app.</li>
+          <li>Add this exact Redirect URI in the app settings:</li>
+        </ol>
+        <div class="copy-row">
+          <code id="redirect-uri" class="copy-value"></code>
+          <button id="copy-redirect" class="btn btn-secondary" type="button">Copy</button>
+        </div>
+        <label class="field">
+          <span>Spotify Client ID</span>
+          <input id="client-id-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your Client ID">
+        </label>
+        <div class="setup-actions">
+          <button id="save-client-id" class="btn btn-primary" type="button">Save Client ID</button>
+          <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>
+        </div>
+      </div>
+
       <div class="manual-token">
         <h3 class="manual-token-title">Access token</h3>
         <p class="muted small">For devices that can’t open Spotify login, paste an access token directly. You can also view/copy the current session token.</p>
@@ -128,10 +146,6 @@
           <button id="save-access-token" class="btn btn-secondary" type="button">Use access token</button>
         </div>
         <p class="muted small">Manual tokens expire (usually ~1 hour) and may need to be pasted again.</p>
-      </div>
-      <div class="setup-actions">
-        <button id="save-client-id" class="btn btn-primary" type="button">Save Client ID</button>
-        <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>
       </div>
       <p id="setup-message" class="message" role="status" aria-live="polite"></p>
     </section>

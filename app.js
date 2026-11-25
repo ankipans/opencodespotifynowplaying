@@ -17,6 +17,9 @@
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist',
     showArt: 'sp_show_art',
+    showStatus: 'sp_show_status',
+    showAlbum: 'sp_show_album',
+    showProgress: 'sp_show_progress',
     theme: 'sp_theme',
   };
 
@@ -37,6 +40,9 @@
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
     showArtToggle: document.getElementById('show-art-toggle'),
+    showStatusToggle: document.getElementById('show-status-toggle'),
+    showAlbumToggle: document.getElementById('show-album-toggle'),
+    showProgressToggle: document.getElementById('show-progress-toggle'),
     accessTokenInput: document.getElementById('access-token-input'),
     saveAccessToken: document.getElementById('save-access-token'),
     currentTokenDisplay: document.getElementById('current-token-display'),
@@ -113,6 +119,21 @@
     return v === null ? true : v === '1';
   }
 
+  function getShowStatus() {
+    const v = localStorage.getItem(STORAGE.showStatus);
+    return v === null ? true : v === '1';
+  }
+
+  function getShowAlbum() {
+    const v = localStorage.getItem(STORAGE.showAlbum);
+    return v === null ? true : v === '1';
+  }
+
+  function getShowProgress() {
+    const v = localStorage.getItem(STORAGE.showProgress);
+    return v === null ? true : v === '1';
+  }
+
   function getUiTheme() {
     return localStorage.getItem(STORAGE.theme) === 'legacy' ? 'legacy' : 'modern';
   }
@@ -131,6 +152,21 @@
   function applyShowArt(show) {
     document.body.classList.toggle('hide-art', !show);
     if (el.showArtToggle) el.showArtToggle.checked = !!show;
+  }
+
+  function applyShowStatus(show) {
+    document.body.classList.toggle('hide-status', !show);
+    if (el.showStatusToggle) el.showStatusToggle.checked = !!show;
+  }
+
+  function applyShowAlbum(show) {
+    document.body.classList.toggle('hide-album', !show);
+    if (el.showAlbumToggle) el.showAlbumToggle.checked = !!show;
+  }
+
+  function applyShowProgress(show) {
+    document.body.classList.toggle('hide-progress', !show);
+    if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
   }
 
   function getStoredAccessToken() {
@@ -1068,6 +1104,27 @@
         applyShowArt(show);
       });
     }
+    if (el.showStatusToggle) {
+      el.showStatusToggle.addEventListener('change', () => {
+        const show = el.showStatusToggle.checked;
+        localStorage.setItem(STORAGE.showStatus, show ? '1' : '0');
+        applyShowStatus(show);
+      });
+    }
+    if (el.showAlbumToggle) {
+      el.showAlbumToggle.addEventListener('change', () => {
+        const show = el.showAlbumToggle.checked;
+        localStorage.setItem(STORAGE.showAlbum, show ? '1' : '0');
+        applyShowAlbum(show);
+      });
+    }
+    if (el.showProgressToggle) {
+      el.showProgressToggle.addEventListener('change', () => {
+        const show = el.showProgressToggle.checked;
+        localStorage.setItem(STORAGE.showProgress, show ? '1' : '0');
+        applyShowProgress(show);
+      });
+    }
     if (el.themeSelect) {
       el.themeSelect.addEventListener('change', () => {
         const theme = el.themeSelect.value === 'legacy' ? 'legacy' : 'modern';
@@ -1124,6 +1181,9 @@
     applyUiTheme(getUiTheme());
     applyShowControls(getShowControls());
     applyShowArt(getShowArt());
+    applyShowStatus(getShowStatus());
+    applyShowAlbum(getShowAlbum());
+    applyShowProgress(getShowProgress());
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();
