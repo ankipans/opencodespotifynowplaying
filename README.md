@@ -20,6 +20,8 @@ https://<your-github-username>.github.io/<your-repo-name>/
 
 The app also displays the detected redirect URI in the Setup panel so you can copy it exactly.
 
+If you want to use this webapp for yourself, click the link of the repo: https://ankipans.github.io/opencodespotifynowplaying
+
 ## Setup
 
 ### 1. Create a Spotify app
