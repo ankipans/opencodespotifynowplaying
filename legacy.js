@@ -286,6 +286,76 @@
     }
   }
 
+  var playbackIndicator = (function () {
+    var link = null;
+    var baseImg = null;
+    var baseReady = false;
+    var baseFailed = false;
+    var lastPlaying = null;
+    var lastBadge = null;
+    function ensureLink() {
+      if (link && link.parentNode) return link;
+      var links = document.getElementsByTagName('link');
+      for (var i = 0; i < links.length; i++) {
+        if ((links[i].rel || '').toLowerCase() === 'icon') { link = links[i]; return link; }
+      }
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+      return link;
+    }
+    function ensureBase(cb) {
+      if (baseReady && baseImg) { cb(); return; }
+      if (baseFailed) { cb(); return; }
+      var img = new Image();
+      img.onload = function () { baseImg = img; baseReady = true; cb(); };
+      img.onerror = function () { baseFailed = true; cb(); };
+      img.src = './favicon.svg';
+    }
+    function draw(isPlaying) {
+      var lnk = ensureLink();
+      if (!baseReady || !baseImg) { if (lnk) { lnk.href = './favicon.svg'; lnk.type = 'image/svg+xml'; } return; }
+      try {
+        var size = 64;
+        var canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        var ctx = canvas.getContext && canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(baseImg, 0, 0, size, size);
+        if (isPlaying) {
+          ctx.beginPath();
+          ctx.arc(size - 14, size - 14, 11, 0, Math.PI * 2);
+          ctx.fillStyle = '#1db954';
+          ctx.fill();
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = '#111111';
+          ctx.stroke();
+        }
+        lnk.href = canvas.toDataURL('image/png');
+        lnk.type = 'image/png';
+      } catch (e) {
+        if (lnk) { lnk.href = './favicon.svg'; lnk.type = 'image/svg+xml'; }
+      }
+    }
+    function setBadge(isPlaying) {
+      if (lastBadge === isPlaying) return;
+      lastBadge = isPlaying;
+      try {
+        if (navigator.setAppBadge && navigator.clearAppBadge) {
+          if (isPlaying) navigator.setAppBadge(1); else navigator.clearAppBadge();
+        }
+      } catch (e) {}
+    }
+    return function (isPlaying) {
+      var playing = !!isPlaying;
+      setBadge(playing);
+      if (lastPlaying === playing) return;
+      lastPlaying = playing;
+      ensureBase(function () { draw(playing); });
+    };
+  })();
+
   function renderNothingPlaying(message) {
     currentPlayback = null;
     if (el.albumArt) { el.albumArt.removeAttribute('src'); el.albumArt.alt = ''; }
@@ -301,6 +371,7 @@
     setProgress(0, 0);
     setDocumentTitle('', '');
     setBackground('');
+    playbackIndicator(false);
   }
 
   function fetchPlaylistName(uri) {
@@ -370,6 +441,7 @@
     setProgress(progress, duration);
     renderPlaybackSource(data.device && data.device.name ? data.device.name : '', lastContextName);
     fetchPlaylistName(data.context && data.context.uri ? data.context.uri : null);
+    playbackIndicator(!!data.is_playing);
   }
 
   function fetchNowPlaying() {

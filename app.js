@@ -566,6 +566,7 @@
     setDocumentTitle('', '');
     setBackground('');
     updateMediaSession(null, null, '');
+    playbackIndicator(false);
   }
 
   function renderPlayback(data) {
@@ -624,6 +625,7 @@
     setDocumentTitle(title, artists);
     setBackground(image);
     updateMediaSession(data, item, image);
+    playbackIndicator(!!data.is_playing);
   }
 
   async function exchangeToken(params) {
@@ -975,6 +977,10 @@
         } else {
           await apiFetch('/me/player/play', { method: 'PUT' });
         }
+      } else if (action === 'play') {
+        await apiFetch('/me/player/play', { method: 'PUT' });
+      } else if (action === 'pause') {
+        await apiFetch('/me/player/pause', { method: 'PUT' });
       } else if (action === 'next') {
         await apiFetch('/me/player/next', { method: 'POST' });
       } else if (action === 'previous') {
@@ -992,11 +998,85 @@
     const bind = (action, handler) => {
       try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {}
     };
-    bind('play', () => { controlPlayback('toggle').catch(console.error); });
-    bind('pause', () => { controlPlayback('toggle').catch(console.error); });
+    bind('play', () => { controlPlayback('play').catch(console.error); });
+    bind('pause', () => { controlPlayback('pause').catch(console.error); });
     bind('previoustrack', () => { controlPlayback('previous').catch(console.error); });
     bind('nexttrack', () => { controlPlayback('next').catch(console.error); });
   }
+
+  const playbackIndicator = (() => {
+    let link = null;
+    let baseImg = null;
+    let baseReady = false;
+    let baseFailed = false;
+    let lastPlaying = null;
+    let lastBadge = null;
+
+    function ensureLink() {
+      if (link && link.parentNode) return link;
+      link = document.querySelector('link[rel="icon"]');
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      return link;
+    }
+
+    function ensureBase(cb) {
+      if (baseReady && baseImg) { cb(); return; }
+      if (baseFailed) { cb(); return; }
+      const img = new Image();
+      img.onload = function () { baseImg = img; baseReady = true; cb(); };
+      img.onerror = function () { baseFailed = true; cb(); };
+      img.src = './favicon.svg';
+    }
+
+    function draw(isPlaying) {
+      const lnk = ensureLink();
+      if (!baseReady || !baseImg) {
+        if (lnk) { lnk.href = './favicon.svg'; lnk.type = 'image/svg+xml'; }
+        return;
+      }
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(baseImg, 0, 0, size, size);
+      if (isPlaying) {
+        ctx.beginPath();
+        ctx.arc(size - 14, size - 14, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#1db954';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111111';
+        ctx.stroke();
+      }
+      try { lnk.href = canvas.toDataURL('image/png'); lnk.type = 'image/png'; } catch (e) { lnk.href = './favicon.svg'; lnk.type = 'image/svg+xml'; }
+    }
+
+    function setBadge(isPlaying) {
+      if (lastBadge === isPlaying) return;
+      lastBadge = isPlaying;
+      try {
+        if (navigator.setAppBadge && navigator.clearAppBadge) {
+          if (isPlaying) navigator.setAppBadge(1);
+          else navigator.clearAppBadge();
+        }
+      } catch (e) {}
+    }
+
+    return function update(isPlaying) {
+      const playing = !!isPlaying;
+      setBadge(playing);
+      if (lastPlaying === playing) return;
+      lastPlaying = playing;
+      ensureBase(function () { draw(playing); });
+    };
+  })();
 
   function updateMediaSession(data, item, image) {
     if (!('mediaSession' in navigator)) return;
