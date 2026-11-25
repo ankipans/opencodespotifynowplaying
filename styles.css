@@ -248,6 +248,13 @@ body.ui-idle .header .header-actions {
   color: var(--fg);
 }
 .manual-token .small { margin: 10px 0 0; }
+.qr-login { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--fg-rgb), 0.12); }
+.qr-login-title { margin: 0 0 8px; font-size: 0.95rem; font-weight: 700; color: var(--fg); }
+.qr-login-center { text-align: center; border-top: none; padding-top: 12px; }
+.qr-panel { margin-top: 12px; }
+.qr-panel[hidden] { display: none !important; }
+.qr-img { display: block; width: 220px; height: 220px; max-width: 100%; border-radius: 12px; background: #fff; padding: 8px; margin: 0 0 10px; }
+.qr-login-center .qr-img { margin-left: auto; margin-right: auto; }
 
 .btn {
   appearance: none;

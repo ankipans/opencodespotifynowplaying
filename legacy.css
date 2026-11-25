@@ -35,6 +35,10 @@ button, input { font: inherit; }
 .setup-actions .btn { margin-right: 8px; margin-bottom: 8px; }
 .toggles { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
 .settings-group-title { margin: 0 0 10px; font-size: 16px; color: #fff; }
+.qr-login { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
+.qr-login .small { margin: 8px 0 0; color: #bbb; }
+.qr-panel { margin-top: 12px; }
+.qr-img { display: block; width: 220px; height: 220px; max-width: 100%; background: #fff; padding: 8px; margin: 0 0 10px; }
 .manual-token { margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; }
 .toggle-field { display: block; margin-bottom: 10px; color: #ddd; }
 .toggle-field input { margin-right: 8px; }
