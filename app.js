@@ -44,6 +44,7 @@
     loginBtn: document.getElementById('login-btn'),
     logoutBtn: document.getElementById('logout-btn'),
     albumArt: document.getElementById('album-art'),
+    artWrap: document.querySelector('.art-wrap'),
     artPlaceholder: document.getElementById('art-placeholder'),
     statusBadge: document.getElementById('status-badge'),
     prevBtn: document.getElementById('prev-btn'),
@@ -437,10 +438,27 @@
     }
   }
 
+  function updateArtAspectRatio() {
+    if (!el.artWrap || !el.albumArt) return;
+    const w = el.albumArt.naturalWidth;
+    const h = el.albumArt.naturalHeight;
+    if (w > 0 && h > 0) {
+      const ratio = Math.max(0.75, Math.min(1.6, w / h));
+      el.artWrap.style.aspectRatio = `${ratio}`;
+    } else {
+      el.artWrap.style.aspectRatio = '';
+    }
+  }
+
+  function resetArtAspectRatio() {
+    if (el.artWrap) el.artWrap.style.aspectRatio = '';
+  }
+
   function renderNothingPlaying(message) {
     currentPlayback = null;
     el.albumArt.removeAttribute('src');
     el.albumArt.alt = '';
+    resetArtAspectRatio();
     el.statusBadge.textContent = 'Idle';
     el.statusBadge.className = 'status-badge';
     if (el.playpauseBtn) {
@@ -485,11 +503,17 @@
     lastProgressAt = Date.now();
 
     if (image) {
-      if (el.albumArt.src !== image) el.albumArt.src = image;
+      if (el.albumArt.src !== image) {
+        resetArtAspectRatio();
+        el.albumArt.src = image;
+      } else if (el.albumArt.complete) {
+        updateArtAspectRatio();
+      }
       el.albumArt.alt = album ? `Album art for ${album}` : `Cover art for ${title}`;
     } else {
       el.albumArt.removeAttribute('src');
       el.albumArt.alt = '';
+      resetArtAspectRatio();
     }
 
     el.statusBadge.textContent = data.is_playing ? 'Playing' : 'Paused';
@@ -884,6 +908,10 @@
   }
 
   function initEvents() {
+    if (el.albumArt) {
+      el.albumArt.addEventListener('load', updateArtAspectRatio);
+      el.albumArt.addEventListener('error', resetArtAspectRatio);
+    }
     ['mousemove', 'mousedown', 'touchstart', 'keydown'].forEach((evt) => {
       document.addEventListener(evt, resetIdleTimer, { passive: true });
     });
