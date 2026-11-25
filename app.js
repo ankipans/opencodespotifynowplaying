@@ -23,6 +23,8 @@
     showClock: 'sp_show_clock',
     clock24h: 'sp_clock_24h',
     refreshInterval: 'sp_refresh_interval',
+    mediaSession: 'sp_media_session',
+    tabBadge: 'sp_tab_badge',
     theme: 'sp_theme',
   };
 
@@ -49,6 +51,8 @@
     showClockSelect: document.getElementById('show-clock-select'),
     clock24hToggle: document.getElementById('clock-24h-toggle'),
     refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
+    mediaSessionToggle: document.getElementById('media-session-toggle'),
+    tabBadgeToggle: document.getElementById('tab-badge-toggle'),
     topClock: document.getElementById('top-clock'),
     topClockTime: document.getElementById('top-clock-time'),
     topClockDate: document.getElementById('top-clock-date'),
@@ -93,6 +97,9 @@
   let statusTimer = null;
   let idleTimer = null;
   let clockTimer = null;
+  let lastMediaData = null;
+  let lastMediaItem = null;
+  let lastMediaImage = '';
   const IDLE_MS = (window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches)) ? 10000 : 5000;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
@@ -218,6 +225,41 @@
     if (visible) {
       updateClock();
       clockTimer = setInterval(updateClock, 1000);
+    }
+  }
+
+  function getMediaSessionEnabled() {
+    const v = localStorage.getItem(STORAGE.mediaSession);
+    return v === null ? true : v === '1';
+  }
+
+  function getTabBadgeEnabled() {
+    const v = localStorage.getItem(STORAGE.tabBadge);
+    return v === null ? true : v === '1';
+  }
+
+  function updateMediaSessionFromCurrent() {
+    if (lastMediaData && lastMediaItem) updateMediaSession(lastMediaData, lastMediaItem, lastMediaImage);
+    else updateMediaSession(null, null, '');
+  }
+
+  function applyMediaSessionEnabled(enabled) {
+    if (el.mediaSessionToggle) el.mediaSessionToggle.checked = !!enabled;
+    if (!enabled) {
+      try { if ('mediaSession' in navigator) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } } catch (e) {}
+      silentAudio(false);
+    } else {
+      updateMediaSessionFromCurrent();
+    }
+  }
+
+  function applyTabBadgeEnabled(enabled) {
+    if (el.tabBadgeToggle) el.tabBadgeToggle.checked = !!enabled;
+    if (!enabled) {
+      playbackIndicator(false);
+      try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {}
+    } else if (currentPlayback) {
+      playbackIndicator(!!currentPlayback.isPlaying);
     }
   }
 
@@ -620,8 +662,16 @@
     }
 
     return function update(isPlaying) {
-      const playing = !!isPlaying;
+      const enabled = (typeof getTabBadgeEnabled === 'function') ? getTabBadgeEnabled() : true;
+      const playing = !!isPlaying && enabled;
       setBadge(playing);
+      if (!enabled) {
+        if (lastPlaying !== false) {
+          lastPlaying = false;
+          ensureBase(function () { draw(false); });
+        }
+        return;
+      }
       if (lastPlaying === playing) return;
       lastPlaying = playing;
       ensureBase(function () { draw(playing); });
@@ -630,6 +680,9 @@
 
   function renderNothingPlaying(message) {
     currentPlayback = null;
+    lastMediaData = null;
+    lastMediaItem = null;
+    lastMediaImage = '';
     el.albumArt.removeAttribute('src');
     el.albumArt.alt = '';
     resetArtAspectRatio();
@@ -708,6 +761,9 @@
     setProgress(progress, duration);
     setDocumentTitle(title, artists);
     setBackground(image);
+    lastMediaData = data;
+    lastMediaItem = item;
+    lastMediaImage = image;
     updateMediaSession(data, item, image);
     playbackIndicator(!!data.is_playing);
   }
@@ -1092,50 +1148,90 @@
     let audio = null;
     let ctx = null;
     let wantPlaying = false;
+    let unlocked = false;
     function ensure() {
       if (audio) return audio;
       const AC = window.AudioContext || window.webkitAudioContext;
       if (AC) {
         try {
           ctx = new AC();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
           const dest = ctx.createMediaStreamDestination();
-          osc.frequency.value = 440;
-          gain.gain.value = 0.00001;
-          osc.connect(gain);
-          gain.connect(dest);
-          osc.start();
+          const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate)), ctx.sampleRate);
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.loop = true;
+          source.connect(dest);
+          source.start();
           audio = new Audio();
+          audio.id = 'silent-media-audio';
           audio.srcObject = dest.stream;
-          audio.loop = true;
-          audio.volume = 0.00001;
+          audio.preload = 'auto';
+          audio.volume = 1;
+          audio.muted = false;
+          audio.setAttribute('playsinline', '');
+          audio.setAttribute('webkit-playsinline', '');
+          audio.style.display = 'none';
+          document.body.appendChild(audio);
           return audio;
         } catch (e) {
           ctx = null;
           audio = null;
         }
       }
-      audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+      try {
+        const sampleRate = 8000;
+        const numSamples = sampleRate;
+        const buffer = new ArrayBuffer(44 + numSamples * 2);
+        const view = new DataView(buffer);
+        const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+        writeStr(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true); writeStr(8, 'WAVE');
+        writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+        writeStr(36, 'data'); view.setUint32(40, numSamples * 2, true);
+        audio = new Audio(URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' })));
+      } catch (e) {
+        audio = new Audio();
+      }
+      audio.id = 'silent-media-audio';
       audio.loop = true;
-      audio.volume = 0.00001;
+      audio.volume = 0.01;
+      audio.setAttribute('playsinline', '');
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
       return audio;
+    }
+    function unlock() {
+      if (unlocked) return;
+      const a = ensure();
+      if (ctx && ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
+      try {
+        const p = a.play();
+        if (p && p.then) {
+          p.then(() => { unlocked = true; if (!wantPlaying) { try { a.pause(); } catch (e) {} } }).catch(() => {});
+        } else {
+          unlocked = true;
+          if (!wantPlaying) { try { a.pause(); } catch (e) {} }
+        }
+      } catch (e) {}
     }
     function sync() {
       const a = ensure();
       if (!a) return;
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
+      if (ctx && ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
       if (wantPlaying) {
         const p = a.play();
+        if (p && p.then) p.then(() => {
+          try { if ('mediaSession' in navigator && navigator.mediaSession.playbackState !== 'playing') navigator.mediaSession.playbackState = 'playing'; } catch (e) {}
+        }).catch(() => {});
         if (p && p.catch) p.catch(() => {});
       } else {
         try { a.pause(); } catch (e) {}
       }
     }
-    document.addEventListener('pointerdown', sync, { passive: true });
-    document.addEventListener('keydown', sync, { passive: true });
+    document.addEventListener('pointerdown', unlock, { passive: true });
+    document.addEventListener('keydown', unlock, { passive: true });
+    document.addEventListener('touchstart', unlock, { passive: true });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
     return function setPlaying(isPlaying) {
       wantPlaying = !!isPlaying;
       sync();
@@ -1143,11 +1239,19 @@
   })();
 
   function updateMediaSession(data, item, image) {
-    silentAudio(!!(data && data.is_playing));
+    const enabled = (typeof getMediaSessionEnabled === 'function') ? getMediaSessionEnabled() : true;
+    const playing = !!(data && data.is_playing);
+    silentAudio(enabled ? playing : false);
     if (!('mediaSession' in navigator)) return;
+    if (!enabled) {
+      try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch (e) {}
+      return;
+    }
+    const silentEl = document.getElementById('silent-media-audio');
     if (!data || !item) {
       navigator.mediaSession.metadata = null;
       navigator.mediaSession.playbackState = 'none';
+      if (silentEl) silentEl.title = 'Spotify Now Playing';
       return;
     }
     const title = item.name || 'Unknown title';
@@ -1160,6 +1264,8 @@
       navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album, artwork });
     } catch (e) {}
     navigator.mediaSession.playbackState = data.is_playing ? 'playing' : 'paused';
+    const silentEl2 = document.getElementById('silent-media-audio');
+    if (silentEl2) silentEl2.title = artist ? (title + ' - ' + artist) : title;
     try {
       if (typeof item.duration_ms === 'number' && typeof data.progress_ms === 'number' && navigator.mediaSession.setPositionState) {
         navigator.mediaSession.setPositionState({
@@ -1268,6 +1374,8 @@
       applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
+      applyMediaSessionEnabled(true);
+      applyTabBadgeEnabled(true);
       applyUiTheme(DEFAULT_UI_THEME);
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
@@ -1344,6 +1452,20 @@
         if (pollTimer) startPolling();
       });
     }
+    if (el.mediaSessionToggle) {
+      el.mediaSessionToggle.addEventListener('change', () => {
+        const on = el.mediaSessionToggle.checked;
+        localStorage.setItem(STORAGE.mediaSession, on ? '1' : '0');
+        applyMediaSessionEnabled(on);
+      });
+    }
+    if (el.tabBadgeToggle) {
+      el.tabBadgeToggle.addEventListener('change', () => {
+        const on = el.tabBadgeToggle.checked;
+        localStorage.setItem(STORAGE.tabBadge, on ? '1' : '0');
+        applyTabBadgeEnabled(on);
+      });
+    }
     if (el.themeSelect) {
       el.themeSelect.addEventListener('change', () => {
         const theme = el.themeSelect.value === 'legacy' ? 'legacy' : 'modern';
@@ -1406,6 +1528,8 @@
     applyShowClock(getShowClock());
     if (el.clock24hToggle) el.clock24hToggle.checked = getClock24h();
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
+    if (el.mediaSessionToggle) el.mediaSessionToggle.checked = getMediaSessionEnabled();
+    if (el.tabBadgeToggle) el.tabBadgeToggle.checked = getTabBadgeEnabled();
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

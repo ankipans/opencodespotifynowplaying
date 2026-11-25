@@ -14,6 +14,7 @@
     showClock: 'sp_show_clock',
     clock24h: 'sp_clock_24h',
     refreshInterval: 'sp_refresh_interval',
+    tabBadge: 'sp_tab_badge',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -36,6 +37,7 @@
     showClockSelect: $('show-clock-select'),
     clock24hToggle: $('clock-24h-toggle'),
     refreshFrequencySelect: $('refresh-frequency-select'),
+    tabBadgeToggle: $('tab-badge-toggle'),
     topClock: $('top-clock'),
     topClockTime: $('top-clock-time'),
     topClockDate: $('top-clock-date'),
@@ -313,6 +315,8 @@
     }
   }
 
+  function getTabBadgeEnabled() { return getBool(STORAGE.tabBadge, true); }
+
   var playbackIndicator = (function () {
     var link = null;
     var baseImg = null;
@@ -375,8 +379,16 @@
       } catch (e) {}
     }
     return function (isPlaying) {
-      var playing = !!isPlaying;
+      var enabled = getTabBadgeEnabled();
+      var playing = !!isPlaying && enabled;
       setBadge(playing);
+      if (!enabled) {
+        if (lastPlaying !== false) {
+          lastPlaying = false;
+          ensureBase(function () { draw(false); });
+        }
+        return;
+      }
       if (lastPlaying === playing) return;
       lastPlaying = playing;
       ensureBase(function () { draw(playing); });
@@ -573,6 +585,7 @@
       removeStored(STORAGE.showClock);
       removeStored(STORAGE.clock24h);
       removeStored(STORAGE.refreshInterval);
+      removeStored(STORAGE.tabBadge);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
@@ -584,6 +597,8 @@
       applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
+      if (el.tabBadgeToggle) el.tabBadgeToggle.checked = true;
+      playbackIndicator(false);
       applySourceVisibility();
       renderNothingPlaying('Paste an access token in Settings to see your playback.');
       showPanel('setup');
@@ -639,6 +654,11 @@
       setStored(STORAGE.refreshInterval, String(ok));
       if (pollTimer) startPolling();
     };
+    if (el.tabBadgeToggle) el.tabBadgeToggle.onchange = function () {
+      var on = !!el.tabBadgeToggle.checked;
+      setStored(STORAGE.tabBadge, on ? '1' : '0');
+      if (!on) playbackIndicator(false); else playbackIndicator(!!(currentPlayback && currentPlayback.isPlaying));
+    };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
       applySourceVisibility();
@@ -658,6 +678,7 @@
     applyShowClock(getMode(STORAGE.showClock, 'hidden'));
     if (el.clock24hToggle) el.clock24hToggle.checked = getBool(STORAGE.clock24h, false);
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
+    if (el.tabBadgeToggle) el.tabBadgeToggle.checked = getTabBadgeEnabled();
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();
