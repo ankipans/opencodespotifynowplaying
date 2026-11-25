@@ -7,20 +7,51 @@
   <meta name="description" content="Display your current Spotify playback status.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg" aria-hidden="true">
+    <div id="bg-art" class="bg-art"></div>
+    <div class="bg-overlay"></div>
+  </div>
+
   <main class="app">
     <header class="header">
-      <div class="brand">
-        <svg class="spotify-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <div class="brand" aria-label="Spotify Now Playing">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
         </svg>
-        <span>Now Playing</span>
+        <span class="brand-text">Now Playing</span>
       </div>
       <div class="header-actions">
+        <button id="wakelock-btn" class="icon-btn" type="button" aria-label="Keep screen awake" title="Keep screen awake" aria-pressed="false">
+          <svg class="icon-awake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+        <button id="fullscreen-btn" class="icon-btn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
+          <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <svg class="icon-compress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
         <button id="settings-toggle" class="icon-btn" type="button" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"></circle>
@@ -58,22 +89,21 @@
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
         </div>
         <h2>Connect Spotify</h2>
-        <p class="muted">Sign in with Spotify to show what you're listening to. This uses Spotify's secure OAuth flow with PKCE.</p>
+        <p class="muted">Sign in to display your current playback. Authorization uses Spotify PKCE over HTTPS.</p>
         <button id="login-btn" class="btn btn-primary btn-large" type="button">Connect with Spotify</button>
-        <p class="muted small">No server required. Tokens stay in your browser.</p>
       </div>
     </section>
 
-    <section id="player-panel" class="panel player-panel" hidden>
+    <section id="player-panel" class="player-panel" hidden>
       <div class="player-layout">
         <div class="art-wrap">
-          <img id="album-art" class="album-art" alt="" width="320" height="320">
+          <img id="album-art" class="album-art" alt="" width="640" height="640">
           <div id="art-placeholder" class="art-placeholder" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
           </div>
         </div>
         <div class="track-info">
-          <p id="status-badge" class="status-badge">Paused</p>
+          <p id="status-badge" class="status-badge">Idle</p>
           <h1 id="track-name" class="track-name">Nothing playing</h1>
           <p id="track-artist" class="track-artist">Start playing something on Spotify</p>
           <p id="track-album" class="track-album"></p>
@@ -96,7 +126,7 @@
     </section>
 
     <footer class="footer">
-      <p id="footer-status" class="muted small">Not connected</p>
+      <p id="footer-status" class="footer-status">Not connected</p>
       <div class="footer-actions">
         <button id="logout-btn" class="link-btn" type="button" hidden>Disconnect</button>
       </div>

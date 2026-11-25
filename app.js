@@ -42,6 +42,9 @@
     progressBar: document.querySelector('.progress-bar'),
     deviceName: document.getElementById('device-name'),
     footerStatus: document.getElementById('footer-status'),
+    bgArt: document.getElementById('bg-art'),
+    fullscreenBtn: document.getElementById('fullscreen-btn'),
+    wakelockBtn: document.getElementById('wakelock-btn'),
   };
 
   let pollTimer = null;
@@ -49,6 +52,9 @@
   let currentPlayback = null;
   let lastProgressAt = 0;
   let isFetching = false;
+  let wakeLock = null;
+  let wakeLockWanted = false;
+  const DEFAULT_TITLE = 'Spotify Now Playing';
 
   function setMessage(text, type = '') {
     el.setupMessage.textContent = text;
@@ -143,6 +149,26 @@
     el.progressDuration.textContent = formatTime(duration);
   }
 
+  function setDocumentTitle(title, artist) {
+    if (title && artist) {
+      document.title = `${title} — ${artist}`;
+    } else if (title) {
+      document.title = title;
+    } else {
+      document.title = DEFAULT_TITLE;
+    }
+  }
+
+  function setBackground(imageUrl) {
+    if (imageUrl) {
+      el.bgArt.style.backgroundImage = `url("${imageUrl.replace(/"/g, '\\"')}")`;
+      el.bgArt.classList.remove('empty');
+    } else {
+      el.bgArt.style.backgroundImage = '';
+      el.bgArt.classList.add('empty');
+    }
+  }
+
   function renderNothingPlaying(message) {
     currentPlayback = null;
     el.albumArt.removeAttribute('src');
@@ -154,6 +180,8 @@
     el.trackAlbum.textContent = '';
     el.deviceName.textContent = '';
     setProgress(0, 0);
+    setDocumentTitle('', '');
+    setBackground('');
   }
 
   function renderPlayback(data) {
@@ -196,6 +224,8 @@
     el.trackAlbum.textContent = album;
     el.deviceName.textContent = data.device && data.device.name ? `Listening on ${data.device.name}` : '';
     setProgress(progress, duration);
+    setDocumentTitle(title, artists);
+    setBackground(image);
   }
 
   async function exchangeToken(params) {
@@ -427,6 +457,95 @@
     updateFooter('Disconnected.');
   }
 
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (isFullscreen()) {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+      } else {
+        const root = document.documentElement;
+        if (root.requestFullscreen) await root.requestFullscreen();
+        else if (root.webkitRequestFullscreen) await root.webkitRequestFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen failed', err);
+      updateFooter('Fullscreen is not available in this browser.');
+    } finally {
+      syncFullscreenButton();
+    }
+  }
+
+  function syncFullscreenButton() {
+    const active = isFullscreen();
+    el.fullscreenBtn.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+    el.fullscreenBtn.title = active ? 'Exit fullscreen' : 'Enter fullscreen';
+  }
+
+  function syncWakeLockButton() {
+    const supported = 'wakeLock' in navigator;
+    el.wakelockBtn.disabled = !supported;
+    el.wakelockBtn.setAttribute('aria-pressed', wakeLockWanted ? 'true' : 'false');
+    if (!supported) {
+      el.wakelockBtn.title = 'Keep screen awake (not supported)';
+      el.wakelockBtn.setAttribute('aria-label', 'Keep screen awake not supported');
+      return;
+    }
+    const label = wakeLockWanted ? 'Screen wake lock on' : 'Keep screen awake';
+    el.wakelockBtn.title = label;
+    el.wakelockBtn.setAttribute('aria-label', label);
+  }
+
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator) || !wakeLockWanted || document.hidden) return;
+    try {
+      if (wakeLock) return;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+        syncWakeLockButton();
+      });
+      syncWakeLockButton();
+    } catch (err) {
+      console.error('Wake lock failed', err);
+      wakeLock = null;
+      wakeLockWanted = false;
+      syncWakeLockButton();
+      updateFooter('Could not keep screen awake.');
+    }
+  }
+
+  async function releaseWakeLock() {
+    if (!wakeLock) return;
+    try {
+      await wakeLock.release();
+    } catch (err) {
+      console.error('Wake lock release failed', err);
+    } finally {
+      wakeLock = null;
+    }
+  }
+
+  async function toggleWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      updateFooter('Wake Lock is not supported in this browser.');
+      syncWakeLockButton();
+      return;
+    }
+    wakeLockWanted = !wakeLockWanted;
+    if (wakeLockWanted) {
+      await requestWakeLock();
+      if (wakeLockWanted) updateFooter('Screen will stay awake while this tab is active.');
+    } else {
+      await releaseWakeLock();
+      updateFooter('Screen wake lock off.');
+    }
+    syncWakeLockButton();
+  }
+
   function initEvents() {
     el.settingsToggle.addEventListener('click', () => {
       const opening = el.setupPanel.hidden;
@@ -478,12 +597,17 @@
 
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
     el.logoutBtn.addEventListener('click', disconnect);
+    el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
+    el.wakelockBtn.addEventListener('click', () => { toggleWakeLock().catch(console.error); });
+    document.addEventListener('fullscreenchange', syncFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-      } else if (getToken()) {
-        startPolling();
+      } else {
+        if (getToken()) startPolling();
+        if (wakeLockWanted) requestWakeLock().catch(console.error);
       }
     });
   }
@@ -493,6 +617,8 @@
     el.clientIdInput.value = getClientId();
     renderNothingPlaying();
     initEvents();
+    syncFullscreenButton();
+    syncWakeLockButton();
 
     const handledCallback = await handleCallback();
     if (handledCallback) return;
