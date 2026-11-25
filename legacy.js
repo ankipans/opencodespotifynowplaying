@@ -6,6 +6,7 @@
   var PROGRESS_TICK = 1000;
   var STORAGE = {
     token: 'sp_token',
+    showControls: 'sp_show_controls',
     showArt: 'sp_show_art',
     showStatus: 'sp_show_status',
     showAlbum: 'sp_show_album',
@@ -27,11 +28,12 @@
     clearData: $('clear-data'),
     currentTokenDisplay: $('current-token-display'),
     toggleTokenVisibility: $('toggle-token-visibility'),
+    showControlsSelect: $('show-controls-select'),
     showArtToggle: $('show-art-toggle'),
     showStatusToggle: $('show-status-toggle'),
     showAlbumToggle: $('show-album-toggle'),
     showProgressToggle: $('show-progress-toggle'),
-    showClockToggle: $('show-clock-toggle'),
+    showClockSelect: $('show-clock-select'),
     clock24hToggle: $('clock-24h-toggle'),
     refreshFrequencySelect: $('refresh-frequency-select'),
     topClock: $('top-clock'),
@@ -205,6 +207,27 @@
     else document.title = 'Spotify Now Playing';
   }
 
+  function getMode(key, def) {
+    var v = getStored(key);
+    if (v === 'hidden' || v === 'active' || v === 'always') return v;
+    if (v === '1') return 'always';
+    if (v === '0') return 'hidden';
+    return def || 'hidden';
+  }
+
+  function setBodyClass(cls, on) {
+    var has = document.body.className.indexOf(cls) !== -1;
+    if (on && !has) document.body.className += (document.body.className ? ' ' : '') + cls;
+    if (!on && has) document.body.className = document.body.className.replace(new RegExp('\\b' + cls + '\\b', 'g'), '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+  }
+
+  function applyShowControls(mode) {
+    var m = (mode === 'hidden' || mode === 'always') ? mode : 'active';
+    setBodyClass('hide-controls', m === 'hidden');
+    setBodyClass('controls-always', m === 'always');
+    if (el.showControlsSelect) el.showControlsSelect.value = m;
+  }
+
   function applyShowArt(show) {
     if (show) document.body.className = document.body.className.replace(/\bhide-art\b/g, '');
     else if (document.body.className.indexOf('hide-art') === -1) document.body.className += ' hide-art';
@@ -246,11 +269,15 @@
     if (el.topClockDate) el.topClockDate.textContent = date;
   }
 
-  function applyShowClock(show) {
-    if (el.topClock) el.topClock.style.display = show ? 'table-cell' : 'none';
-    if (el.showClockToggle) el.showClockToggle.checked = !!show;
+  function applyShowClock(mode) {
+    var m = (mode === 'active' || mode === 'always') ? mode : 'hidden';
+    var visible = m !== 'hidden';
+    if (el.topClock) el.topClock.style.display = visible ? 'table-cell' : 'none';
+    setBodyClass('clock-active', m === 'active');
+    setBodyClass('clock-always', m === 'always');
+    if (el.showClockSelect) el.showClockSelect.value = m;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-    if (show) {
+    if (visible) {
       updateClock();
       clockTimer = setInterval(updateClock, 1000);
     }
@@ -538,6 +565,7 @@
       if (!window.confirm('Clear stored Spotify data from this browser?')) return;
       stopPolling();
       removeStored(STORAGE.token);
+      removeStored(STORAGE.showControls);
       removeStored(STORAGE.showArt);
       removeStored(STORAGE.showStatus);
       removeStored(STORAGE.showAlbum);
@@ -548,11 +576,12 @@
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
+      applyShowControls('active');
       applyShowArt(true);
       applyShowStatus(true);
       applyShowAlbum(true);
       applyShowProgress(true);
-      applyShowClock(false);
+      applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applySourceVisibility();
@@ -589,10 +618,15 @@
       setStored(STORAGE.showProgress, show ? '1' : '0');
       applyShowProgress(show);
     };
-    if (el.showClockToggle) el.showClockToggle.onchange = function () {
-      var show = !!el.showClockToggle.checked;
-      setStored(STORAGE.showClock, show ? '1' : '0');
-      applyShowClock(show);
+    if (el.showControlsSelect) el.showControlsSelect.onchange = function () {
+      var mode = el.showControlsSelect.value;
+      setStored(STORAGE.showControls, mode);
+      applyShowControls(mode);
+    };
+    if (el.showClockSelect) el.showClockSelect.onchange = function () {
+      var mode = el.showClockSelect.value;
+      setStored(STORAGE.showClock, mode);
+      applyShowClock(mode);
     };
     if (el.clock24hToggle) el.clock24hToggle.onchange = function () {
       var on = !!el.clock24hToggle.checked;
@@ -616,11 +650,12 @@
   }
 
   function init() {
+    applyShowControls(getMode(STORAGE.showControls, 'active'));
     applyShowArt(getBool(STORAGE.showArt, true));
     applyShowStatus(getBool(STORAGE.showStatus, true));
     applyShowAlbum(getBool(STORAGE.showAlbum, true));
     applyShowProgress(getBool(STORAGE.showProgress, true));
-    applyShowClock(getBool(STORAGE.showClock, false));
+    applyShowClock(getMode(STORAGE.showClock, 'hidden'));
     if (el.clock24hToggle) el.clock24hToggle.checked = getBool(STORAGE.clock24h, false);
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
     renderNothingPlaying();

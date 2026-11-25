@@ -69,8 +69,10 @@ button, input { font: inherit; }
 .control-btn-main { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
 .playback-source { margin: 0; color: #ccc; }
 body.ui-idle .brand, body.ui-idle .header-actions, body.ui-idle .playback-controls { visibility: hidden; }
+body.ui-idle.controls-always .playback-controls { visibility: visible; }
+body.ui-idle.clock-active .top-clock { visibility: hidden; }
 body.ui-idle { cursor: none; }
-body.setup-mode .playback-controls { display: none; }
+body.setup-mode .playback-controls, body.hide-controls .playback-controls { display: none; }
 
 body.hide-art .art-wrap { display: none; }
 body.hide-art .track-info { display: block; width: 100%; text-align: center; }

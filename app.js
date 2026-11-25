@@ -39,14 +39,14 @@
     saveClientId: document.getElementById('save-client-id'),
     clearData: document.getElementById('clear-data'),
     themeSelect: document.getElementById('theme-select'),
-    showControlsToggle: document.getElementById('show-controls-toggle'),
+    showControlsSelect: document.getElementById('show-controls-select'),
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
     showArtToggle: document.getElementById('show-art-toggle'),
     showStatusToggle: document.getElementById('show-status-toggle'),
     showAlbumToggle: document.getElementById('show-album-toggle'),
     showProgressToggle: document.getElementById('show-progress-toggle'),
-    showClockToggle: document.getElementById('show-clock-toggle'),
+    showClockSelect: document.getElementById('show-clock-select'),
     clock24hToggle: document.getElementById('clock-24h-toggle'),
     refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
     topClock: document.getElementById('top-clock'),
@@ -111,7 +111,9 @@
 
   function getShowControls() {
     const v = localStorage.getItem(STORAGE.showControls);
-    return v === null ? true : v === '1';
+    if (v === 'hidden' || v === 'active' || v === 'always') return v;
+    if (v === '0') return 'hidden';
+    return 'active';
   }
 
   function getShowDevice() {
@@ -154,9 +156,11 @@
     if (el.themeSelect) el.themeSelect.value = t;
   }
 
-  function applyShowControls(show) {
-    document.body.classList.toggle('hide-controls', !show);
-    if (el.showControlsToggle) el.showControlsToggle.checked = !!show;
+  function applyShowControls(mode) {
+    const m = (mode === 'hidden' || mode === 'always') ? mode : 'active';
+    document.body.classList.toggle('hide-controls', m === 'hidden');
+    document.body.classList.toggle('controls-always', m === 'always');
+    if (el.showControlsSelect) el.showControlsSelect.value = m;
   }
 
   function applyShowArt(show) {
@@ -181,7 +185,9 @@
 
   function getShowClock() {
     const v = localStorage.getItem(STORAGE.showClock);
-    return v === '1';
+    if (v === 'hidden' || v === 'active' || v === 'always') return v;
+    if (v === '1') return 'always';
+    return 'hidden';
   }
 
   function getClock24h() {
@@ -201,11 +207,15 @@
     if (el.topClockDate) el.topClockDate.textContent = now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  function applyShowClock(show) {
-    if (el.topClock) el.topClock.hidden = !show;
-    if (el.showClockToggle) el.showClockToggle.checked = !!show;
+  function applyShowClock(mode) {
+    const m = (mode === 'active' || mode === 'always') ? mode : 'hidden';
+    const visible = m !== 'hidden';
+    if (el.topClock) el.topClock.hidden = !visible;
+    document.body.classList.toggle('clock-active', m === 'active');
+    document.body.classList.toggle('clock-always', m === 'always');
+    if (el.showClockSelect) el.showClockSelect.value = m;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
-    if (show) {
+    if (visible) {
       updateClock();
       clockTimer = setInterval(updateClock, 1000);
     }
@@ -1248,14 +1258,14 @@
       clearAllData();
       el.clientIdInput.value = '';
       if (el.accessTokenInput) el.accessTokenInput.value = '';
-      applyShowControls(true);
+      applyShowControls('active');
       applyShowDevice(true);
       applyShowPlaylist(true);
       applyShowArt(true);
       applyShowStatus(true);
       applyShowAlbum(true);
       applyShowProgress(true);
-      applyShowClock(false);
+      applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applyUiTheme(DEFAULT_UI_THEME);
@@ -1266,11 +1276,11 @@
       showTransientStatus('Stored data cleared.');
     });
 
-    if (el.showControlsToggle) {
-      el.showControlsToggle.addEventListener('change', () => {
-        const show = el.showControlsToggle.checked;
-        localStorage.setItem(STORAGE.showControls, show ? '1' : '0');
-        applyShowControls(show);
+    if (el.showControlsSelect) {
+      el.showControlsSelect.addEventListener('change', () => {
+        const mode = el.showControlsSelect.value;
+        localStorage.setItem(STORAGE.showControls, mode);
+        applyShowControls(mode);
       });
     }
     if (el.showDeviceToggle) {
@@ -1313,11 +1323,11 @@
         applyShowProgress(show);
       });
     }
-    if (el.showClockToggle) {
-      el.showClockToggle.addEventListener('change', () => {
-        const show = el.showClockToggle.checked;
-        localStorage.setItem(STORAGE.showClock, show ? '1' : '0');
-        applyShowClock(show);
+    if (el.showClockSelect) {
+      el.showClockSelect.addEventListener('change', () => {
+        const mode = el.showClockSelect.value;
+        localStorage.setItem(STORAGE.showClock, mode);
+        applyShowClock(mode);
       });
     }
     if (el.clock24hToggle) {
