@@ -147,6 +147,19 @@ body.ui-idle .header {
 }
 .field { display: block; margin-bottom: 16px; }
 .field span { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; color: var(--muted); }
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.toggle-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--fg);
+}
 .field input {
   width: 100%;
   padding: 12px 14px;
@@ -273,6 +286,15 @@ body.ui-idle .header {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+body.ui-idle .playback-controls {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+}
+body.hide-controls .playback-controls {
+  display: none !important;
 }
 .control-btn {
   display: inline-grid;
@@ -367,7 +389,7 @@ body.ui-idle .header {
   font-size: 0.8125rem;
   min-height: 1.25em;
 }
-.footer-status { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.footer-status { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; }
 .playback-source {
   margin: 0;
   margin-left: auto;
@@ -377,7 +399,8 @@ body.ui-idle .header {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  max-width: min(100%, 70vw);
+  flex: 0 1 auto;
 }
 .playback-source:empty { display: none; }
 .context-sep { opacity: 0.7; }

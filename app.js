@@ -13,6 +13,7 @@
     token: 'sp_token',
     verifier: 'sp_code_verifier',
     state: 'sp_auth_state',
+    showControls: 'sp_show_controls',
   };
 
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -27,6 +28,7 @@
     clientIdInput: document.getElementById('client-id-input'),
     saveClientId: document.getElementById('save-client-id'),
     clearData: document.getElementById('clear-data'),
+    showControlsToggle: document.getElementById('show-controls-toggle'),
     setupMessage: document.getElementById('setup-message'),
     loginBtn: document.getElementById('login-btn'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -75,6 +77,16 @@
 
   function setClientId(id) {
     localStorage.setItem(STORAGE.clientId, id.trim());
+  }
+
+  function getShowControls() {
+    const v = localStorage.getItem(STORAGE.showControls);
+    return v === null ? true : v === '1';
+  }
+
+  function applyShowControls(show) {
+    document.body.classList.toggle('hide-controls', !show);
+    if (el.showControlsToggle) el.showControlsToggle.checked = !!show;
   }
 
   function getToken() {
@@ -829,6 +841,14 @@
       showTransientStatus('Stored data cleared.');
     });
 
+    if (el.showControlsToggle) {
+      el.showControlsToggle.addEventListener('change', () => {
+        const show = el.showControlsToggle.checked;
+        localStorage.setItem(STORAGE.showControls, show ? '1' : '0');
+        applyShowControls(show);
+      });
+    }
+
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
     el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
@@ -852,6 +872,7 @@
   async function init() {
     el.redirectUri.textContent = REDIRECT_URI;
     el.clientIdInput.value = getClientId();
+    applyShowControls(getShowControls());
     renderNothingPlaying();
     initEvents();
     syncFullscreenButton();
