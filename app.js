@@ -316,9 +316,9 @@
   function renderPlaybackSource(deviceName, contextName) {
     const device = deviceName || '';
     const context = contextName || '';
-    el.deviceName.textContent = device;
-    el.contextName.textContent = context;
-    el.contextSep.hidden = !(device && context);
+    if (el.deviceName) el.deviceName.textContent = device;
+    if (el.contextName) el.contextName.textContent = context;
+    if (el.contextSep) el.contextSep.hidden = !(device && context);
   }
 
   async function updateContextName(data) {
@@ -521,7 +521,15 @@
     if (isFetching || document.hidden) return;
     isFetching = true;
     try {
-      const data = await apiFetch('/me/player/currently-playing');
+      let data = await apiFetch('/me/player/currently-playing');
+      if (data && !data.device) {
+        try {
+          const player = await apiFetch('/me/player?fields=device');
+          if (player && player.device) data = { ...data, device: player.device };
+        } catch (e) {
+          console.error('Failed to fetch player device', e);
+        }
+      }
       renderPlayback(data);
       if (el.loginPanel.hidden && el.playerPanel.hidden) showPanel('player');
     } catch (err) {
