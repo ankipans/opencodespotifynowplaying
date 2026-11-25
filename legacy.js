@@ -346,10 +346,10 @@
     };
 
     if (el.saveAccessToken) el.saveAccessToken.onclick = function () {
-      var token = (el.accessTokenInput.value || '').replace(/^\s+|\s+$/g, '');
+      var token = ((el.accessTokenInput && el.accessTokenInput.value) || (el.currentTokenDisplay && el.currentTokenDisplay.value) || '').replace(/^\s+|\s+$/g, '');
       if (!token) { setMessage('Please paste an access token.', 'error'); return; }
       setToken({ access_token: token, refresh_token: '', expires_at: (new Date()).getTime() + 55 * 60 * 1000, token_type: 'Bearer', manual: true });
-      el.accessTokenInput.value = '';
+      if (el.accessTokenInput) el.accessTokenInput.value = '';
       setMessage('Access token saved. It may expire in about an hour.', 'success');
       showPanel('player');
       startPolling();

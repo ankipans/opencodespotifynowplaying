@@ -954,7 +954,7 @@
 
     if (el.saveAccessToken) {
       el.saveAccessToken.addEventListener('click', () => {
-        const token = (el.accessTokenInput.value || '').trim();
+        const token = ((el.accessTokenInput && el.accessTokenInput.value) || (el.currentTokenDisplay && el.currentTokenDisplay.value) || '').trim();
         if (!token) {
           setMessage('Please paste an access token.', 'error');
           return;
@@ -967,7 +967,7 @@
           token_type: 'Bearer',
           manual: true,
         });
-        el.accessTokenInput.value = '';
+        if (el.accessTokenInput) el.accessTokenInput.value = '';
         syncCurrentTokenDisplay();
         setMessage('Access token saved. It may expire in about an hour.', 'success');
         showPanel('player');
