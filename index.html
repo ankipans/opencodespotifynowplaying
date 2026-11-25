@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spotify Now Playing</title>
   <meta name="description" content="Display your current Spotify playback status.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -125,11 +122,8 @@
       </div>
     </section>
 
-    <footer class="footer">
-      <p id="footer-status" class="footer-status">Not connected</p>
-      <div class="footer-actions">
-        <button id="logout-btn" class="link-btn" type="button" hidden>Disconnect</button>
-      </div>
+    <footer class="footer" aria-live="polite">
+      <p id="footer-status" class="footer-status"></p>
     </footer>
   </main>
 

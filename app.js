@@ -54,6 +54,7 @@
   let isFetching = false;
   let wakeLock = null;
   let wakeLockWanted = false;
+  let statusTimer = null;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
   function setMessage(text, type = '') {
@@ -125,11 +126,23 @@
     el.setupPanel.hidden = name !== 'setup';
     el.loginPanel.hidden = name !== 'login';
     el.playerPanel.hidden = name !== 'player';
-    el.logoutBtn.hidden = name !== 'player';
+    if (el.logoutBtn) el.logoutBtn.hidden = name !== 'player';
   }
 
   function updateFooter(text) {
-    el.footerStatus.textContent = text;
+    if (!el.footerStatus) return;
+    el.footerStatus.textContent = text || '';
+  }
+
+  function showTransientStatus(text, ms = 2800) {
+    if (!el.footerStatus) return;
+    if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+    el.footerStatus.textContent = text || '';
+    if (text && ms > 0) {
+      statusTimer = setTimeout(() => {
+        if (el.footerStatus.textContent === text) el.footerStatus.textContent = '';
+      }, ms);
+    }
   }
 
   function formatTime(ms) {
@@ -159,14 +172,112 @@
     }
   }
 
-  function setBackground(imageUrl) {
-    if (imageUrl) {
-      el.bgArt.style.backgroundImage = `url("${imageUrl.replace(/"/g, '\\"')}")`;
-      el.bgArt.classList.remove('empty');
-    } else {
-      el.bgArt.style.backgroundImage = '';
-      el.bgArt.classList.add('empty');
+  function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        default: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
     }
+    return [h, s, l];
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+  }
+
+  function luminance(r, g, b) {
+    const toLin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
+  }
+
+  function applyTheme(rgb) {
+    const [r, g, b] = rgb || [0, 0, 0];
+    const lum = luminance(r, g, b);
+    const darkText = lum > 0.52;
+    const fg = darkText ? [17, 17, 17] : [255, 255, 255];
+    const fgRgb = fg.join(', ');
+    const bgHex = rgbToHex(r, g, b);
+
+    document.documentElement.style.setProperty('--bg-color', bgHex);
+    document.documentElement.style.setProperty('--fg', darkText ? '#111111' : '#ffffff');
+    document.documentElement.style.setProperty('--fg-rgb', fgRgb);
+    document.documentElement.style.setProperty('--muted', `rgba(${fgRgb}, 0.74)`);
+    document.documentElement.style.setProperty('--muted-2', `rgba(${fgRgb}, 0.56)`);
+    document.documentElement.style.setProperty('--faint', `rgba(${fgRgb}, 0.14)`);
+    document.documentElement.style.setProperty('--faint-2', `rgba(${fgRgb}, 0.08)`);
+    document.documentElement.style.setProperty('--panel', darkText ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)');
+    document.documentElement.style.setProperty('--panel-border', `rgba(${fgRgb}, 0.14)`);
+    document.documentElement.style.setProperty('--btn-primary-bg', darkText ? '#111111' : '#ffffff');
+    document.documentElement.style.setProperty('--btn-primary-fg', darkText ? '#ffffff' : '#000000');
+
+    el.bgArt.style.backgroundImage = '';
+    el.bgArt.style.backgroundColor = bgHex;
+    el.bgArt.classList.toggle('empty', !rgb);
+  }
+
+  function extractDominantColor(imageUrl) {
+    return new Promise((resolve) => {
+      if (!imageUrl) { resolve([0, 0, 0]); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+      img.onload = () => {
+        try {
+          const size = 32;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) { resolve([0, 0, 0]); return; }
+          ctx.drawImage(img, 0, 0, size, size);
+          const { data } = ctx.getImageData(0, 0, size, size);
+
+          let r = 0, g = 0, b = 0, count = 0;
+          let sr = 0, sg = 0, sb = 0, sc = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            if (a < 128) continue;
+            const pr = data[i], pg = data[i + 1], pb = data[i + 2];
+            r += pr; g += pg; b += pb; count++;
+            const [, s, l] = rgbToHsl(pr, pg, pb);
+            if (s > 0.12 && l > 0.08 && l < 0.92) {
+              const w = 0.5 + s;
+              sr += pr * w; sg += pg * w; sb += pb * w; sc += w;
+            }
+          }
+          if (!count) { resolve([0, 0, 0]); return; }
+          if (sc > 0) resolve([Math.round(sr / sc), Math.round(sg / sc), Math.round(sb / sc)]);
+          else resolve([Math.round(r / count), Math.round(g / count), Math.round(b / count)]);
+        } catch {
+          resolve([0, 0, 0]);
+        }
+      };
+      img.onerror = () => resolve([0, 0, 0]);
+      img.src = imageUrl;
+    });
+  }
+
+  let bgRequestId = 0;
+  async function setBackground(imageUrl) {
+    const req = ++bgRequestId;
+    if (!imageUrl) {
+      applyTheme([0, 0, 0]);
+      return;
+    }
+    const color = await extractDominantColor(imageUrl);
+    if (req !== bgRequestId) return;
+    applyTheme(color);
   }
 
   function renderNothingPlaying(message) {
@@ -316,16 +427,13 @@
     try {
       const data = await apiFetch('/me/player/currently-playing');
       renderPlayback(data);
-      updateFooter('Connected to Spotify' + (data && data.is_playing ? ' • Updating live' : ''));
       if (el.loginPanel.hidden && el.playerPanel.hidden) showPanel('player');
-      if (!el.playerPanel.hidden) el.logoutBtn.hidden = false;
     } catch (err) {
       console.error(err);
-      updateFooter(err.message || 'Failed to fetch playback.');
+      showTransientStatus(err.message || 'Failed to fetch playback.', 4000);
       if (String(err.message).includes('Not authenticated') || String(err.message).includes('Session expired')) {
         stopPolling();
         showPanel(getClientId() ? 'login' : 'setup');
-        el.logoutBtn.hidden = true;
       }
     } finally {
       isFetching = false;
@@ -397,7 +505,7 @@
     if (error) {
       showPanel(getClientId() ? 'login' : 'setup');
       setMessage('Spotify authorization failed: ' + error, 'error');
-      updateFooter('Authorization failed.');
+      showTransientStatus('Authorization failed.', 4000);
       return true;
     }
 
@@ -420,7 +528,7 @@
       return true;
     }
 
-    updateFooter('Completing Spotify connection...');
+    showTransientStatus('Completing Spotify connection...', 0);
     try {
       const data = await exchangeToken({
         client_id: clientId,
@@ -443,7 +551,7 @@
       console.error(err);
       showPanel(getClientId() ? 'login' : 'setup');
       setMessage(err.message || 'Failed to complete Spotify connection.', 'error');
-      updateFooter('Connection failed.');
+      showTransientStatus('Connection failed.', 4000);
     }
     return true;
   }
@@ -453,8 +561,8 @@
     clearToken();
     renderNothingPlaying('Connect Spotify to see your playback.');
     showPanel(getClientId() ? 'login' : 'setup');
-    el.logoutBtn.hidden = true;
-    updateFooter('Disconnected.');
+    if (el.logoutBtn) el.logoutBtn.hidden = true;
+    showTransientStatus('Disconnected.');
   }
 
   function isFullscreen() {
@@ -465,15 +573,22 @@
     try {
       if (isFullscreen()) {
         if (document.exitFullscreen) await document.exitFullscreen();
-        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        return;
+      }
+      const root = document.documentElement;
+      if (root.requestFullscreen) {
+        await root.requestFullscreen();
+      } else if (root.webkitRequestFullscreen) {
+        root.webkitRequestFullscreen();
+      } else if (root.msRequestFullscreen) {
+        root.msRequestFullscreen();
       } else {
-        const root = document.documentElement;
-        if (root.requestFullscreen) await root.requestFullscreen();
-        else if (root.webkitRequestFullscreen) await root.webkitRequestFullscreen();
+        showTransientStatus('Fullscreen is not supported in this browser.');
       }
     } catch (err) {
       console.error('Fullscreen failed', err);
-      updateFooter('Fullscreen is not available in this browser.');
+      showTransientStatus('Fullscreen could not be started.');
     } finally {
       syncFullscreenButton();
     }
@@ -487,11 +602,10 @@
 
   function syncWakeLockButton() {
     const supported = 'wakeLock' in navigator;
-    el.wakelockBtn.disabled = !supported;
     el.wakelockBtn.setAttribute('aria-pressed', wakeLockWanted ? 'true' : 'false');
     if (!supported) {
-      el.wakelockBtn.title = 'Keep screen awake (not supported)';
-      el.wakelockBtn.setAttribute('aria-label', 'Keep screen awake not supported');
+      el.wakelockBtn.title = 'Keep screen awake (not supported in this browser)';
+      el.wakelockBtn.setAttribute('aria-label', 'Keep screen awake not supported in this browser');
       return;
     }
     const label = wakeLockWanted ? 'Screen wake lock on' : 'Keep screen awake';
@@ -514,7 +628,7 @@
       wakeLock = null;
       wakeLockWanted = false;
       syncWakeLockButton();
-      updateFooter('Could not keep screen awake.');
+      showTransientStatus('Could not keep screen awake.', 4000);
     }
   }
 
@@ -531,17 +645,17 @@
 
   async function toggleWakeLock() {
     if (!('wakeLock' in navigator)) {
-      updateFooter('Wake Lock is not supported in this browser.');
+      showTransientStatus('Wake Lock is not supported in this browser.');
       syncWakeLockButton();
       return;
     }
     wakeLockWanted = !wakeLockWanted;
     if (wakeLockWanted) {
       await requestWakeLock();
-      if (wakeLockWanted) updateFooter('Screen will stay awake while this tab is active.');
+      if (wakeLockWanted) showTransientStatus('Screen will stay awake while this tab is active.');
     } else {
       await releaseWakeLock();
-      updateFooter('Screen wake lock off.');
+      showTransientStatus('Screen wake lock off.');
     }
     syncWakeLockButton();
   }
@@ -590,13 +704,13 @@
       el.clientIdInput.value = '';
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
-      el.logoutBtn.hidden = true;
+      if (el.logoutBtn) el.logoutBtn.hidden = true;
       setMessage('Stored data cleared.', 'success');
-      updateFooter('Not connected');
+      showTransientStatus('Stored data cleared.');
     });
 
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
-    el.logoutBtn.addEventListener('click', disconnect);
+    if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
     el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
     el.wakelockBtn.addEventListener('click', () => { toggleWakeLock().catch(console.error); });
     document.addEventListener('fullscreenchange', syncFullscreenButton);
@@ -629,7 +743,7 @@
     if (!clientId) {
       showPanel('setup');
       el.setupPanel.hidden = false;
-      updateFooter('Setup required.');
+      showTransientStatus('Setup required.', 3000);
       return;
     }
 
@@ -640,7 +754,7 @@
     }
 
     showPanel('login');
-    updateFooter('Ready to connect.');
+    showTransientStatus('Ready to connect.', 2500);
   }
 
   init().catch((err) => {
