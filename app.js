@@ -21,6 +21,8 @@
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
     showClock: 'sp_show_clock',
+    clock24h: 'sp_clock_24h',
+    refreshInterval: 'sp_refresh_interval',
     theme: 'sp_theme',
   };
 
@@ -45,6 +47,8 @@
     showAlbumToggle: document.getElementById('show-album-toggle'),
     showProgressToggle: document.getElementById('show-progress-toggle'),
     showClockToggle: document.getElementById('show-clock-toggle'),
+    clock24hToggle: document.getElementById('clock-24h-toggle'),
+    refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
     topClock: document.getElementById('top-clock'),
     topClockTime: document.getElementById('top-clock-time'),
     topClockDate: document.getElementById('top-clock-date'),
@@ -180,10 +184,20 @@
     return v === '1';
   }
 
+  function getClock24h() {
+    return localStorage.getItem(STORAGE.clock24h) === '1';
+  }
+
+  function getRefreshInterval() {
+    const v = parseInt(localStorage.getItem(STORAGE.refreshInterval), 10);
+    return [3000, 5000, 10000, 30000].indexOf(v) !== -1 ? v : POLL_INTERVAL;
+  }
+
   function updateClock() {
     if (!el.topClock || el.topClock.hidden) return;
     const now = new Date();
-    if (el.topClockTime) el.topClockTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const hour12 = !getClock24h();
+    if (el.topClockTime) el.topClockTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: hour12 });
     if (el.topClockDate) el.topClockDate.textContent = now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
   }
 
@@ -741,7 +755,7 @@
   function startPolling() {
     stopPolling();
     fetchNowPlaying();
-    pollTimer = setInterval(fetchNowPlaying, POLL_INTERVAL);
+    pollTimer = setInterval(fetchNowPlaying, getRefreshInterval());
     progressTimer = setInterval(() => {
       if (!currentPlayback || !currentPlayback.isPlaying) return;
       const elapsed = Date.now() - lastProgressAt;
@@ -1107,6 +1121,8 @@
       applyShowAlbum(true);
       applyShowProgress(true);
       applyShowClock(false);
+      if (el.clock24hToggle) el.clock24hToggle.checked = false;
+      if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applyUiTheme(DEFAULT_UI_THEME);
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
@@ -1169,6 +1185,20 @@
         applyShowClock(show);
       });
     }
+    if (el.clock24hToggle) {
+      el.clock24hToggle.addEventListener('change', () => {
+        const on = el.clock24hToggle.checked;
+        localStorage.setItem(STORAGE.clock24h, on ? '1' : '0');
+        updateClock();
+      });
+    }
+    if (el.refreshFrequencySelect) {
+      el.refreshFrequencySelect.addEventListener('change', () => {
+        const v = parseInt(el.refreshFrequencySelect.value, 10);
+        localStorage.setItem(STORAGE.refreshInterval, String([3000, 5000, 10000, 30000].indexOf(v) !== -1 ? v : POLL_INTERVAL));
+        if (pollTimer) startPolling();
+      });
+    }
     if (el.themeSelect) {
       el.themeSelect.addEventListener('change', () => {
         const theme = el.themeSelect.value === 'legacy' ? 'legacy' : 'modern';
@@ -1229,6 +1259,8 @@
     applyShowAlbum(getShowAlbum());
     applyShowProgress(getShowProgress());
     applyShowClock(getShowClock());
+    if (el.clock24hToggle) el.clock24hToggle.checked = getClock24h();
+    if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

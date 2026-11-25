@@ -21,7 +21,7 @@ button, input { font: inherit; }
 .small { font-size: 13px; }
 .field { display: block; margin-bottom: 14px; }
 .field span { display: block; margin-bottom: 6px; color: #ccc; font-size: 14px; }
-.field input[type="password"], .field input[type="text"] {
+.field input[type="password"], .field input[type="text"], .field select {
   width: 100%; padding: 10px 12px; color: #fff; background: #1a1a1a; border: 1px solid #444;
 }
 .copy-row { overflow: hidden; }

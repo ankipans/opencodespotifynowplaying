@@ -11,6 +11,8 @@
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
     showClock: 'sp_show_clock',
+    clock24h: 'sp_clock_24h',
+    refreshInterval: 'sp_refresh_interval',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -30,6 +32,8 @@
     showAlbumToggle: $('show-album-toggle'),
     showProgressToggle: $('show-progress-toggle'),
     showClockToggle: $('show-clock-toggle'),
+    clock24hToggle: $('clock-24h-toggle'),
+    refreshFrequencySelect: $('refresh-frequency-select'),
     topClock: $('top-clock'),
     topClockTime: $('top-clock-time'),
     topClockDate: $('top-clock-date'),
@@ -225,10 +229,18 @@
     if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
   }
 
+  function getRefreshInterval() {
+    var v = parseInt(getStored(STORAGE.refreshInterval), 10);
+    return [3000, 5000, 10000, 30000].indexOf(v) !== -1 ? v : POLL_INTERVAL;
+  }
+
   function updateClock() {
     if (!el.topClock || el.topClock.style.display === 'none') return;
     var now = new Date();
-    var time = now.toLocaleTimeString ? now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : now.toTimeString().slice(0, 5);
+    var hour12 = !getBool(STORAGE.clock24h, false);
+    var timeOpts = { hour: '2-digit', minute: '2-digit' };
+    if (now.toLocaleTimeString) timeOpts.hour12 = hour12;
+    var time = now.toLocaleTimeString ? now.toLocaleTimeString([], timeOpts) : now.toTimeString().slice(0, 5);
     var date = now.toLocaleDateString ? now.toLocaleDateString([], { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : now.toDateString();
     if (el.topClockTime) el.topClockTime.textContent = time;
     if (el.topClockDate) el.topClockDate.textContent = date;
@@ -388,7 +400,7 @@
   function startPolling() {
     stopPolling();
     fetchNowPlaying();
-    pollTimer = setInterval(fetchNowPlaying, POLL_INTERVAL);
+    pollTimer = setInterval(fetchNowPlaying, getRefreshInterval());
     progressTimer = setInterval(function () {
       if (!currentPlayback) return;
       var p = currentPlayback.progressMs || 0;
@@ -459,6 +471,8 @@
       removeStored(STORAGE.showAlbum);
       removeStored(STORAGE.showProgress);
       removeStored(STORAGE.showClock);
+      removeStored(STORAGE.clock24h);
+      removeStored(STORAGE.refreshInterval);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
@@ -467,6 +481,8 @@
       applyShowAlbum(true);
       applyShowProgress(true);
       applyShowClock(false);
+      if (el.clock24hToggle) el.clock24hToggle.checked = false;
+      if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applySourceVisibility();
       renderNothingPlaying('Paste an access token in Settings to see your playback.');
       showPanel('setup');
@@ -506,6 +522,17 @@
       setStored(STORAGE.showClock, show ? '1' : '0');
       applyShowClock(show);
     };
+    if (el.clock24hToggle) el.clock24hToggle.onchange = function () {
+      var on = !!el.clock24hToggle.checked;
+      setStored(STORAGE.clock24h, on ? '1' : '0');
+      updateClock();
+    };
+    if (el.refreshFrequencySelect) el.refreshFrequencySelect.onchange = function () {
+      var v = parseInt(el.refreshFrequencySelect.value, 10);
+      var ok = [3000, 5000, 10000, 30000].indexOf(v) !== -1 ? v : POLL_INTERVAL;
+      setStored(STORAGE.refreshInterval, String(ok));
+      if (pollTimer) startPolling();
+    };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
       applySourceVisibility();
@@ -522,6 +549,8 @@
     applyShowAlbum(getBool(STORAGE.showAlbum, true));
     applyShowProgress(getBool(STORAGE.showProgress, true));
     applyShowClock(getBool(STORAGE.showClock, false));
+    if (el.clock24hToggle) el.clock24hToggle.checked = getBool(STORAGE.clock24h, false);
+    if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

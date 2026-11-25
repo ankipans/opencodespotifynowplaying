@@ -110,7 +110,20 @@
         </label>
         <label class="toggle-field">
           <input id="show-clock-toggle" type="checkbox">
-          <span>Always show date and time</span>
+          <span>Show date and time</span>
+        </label>
+        <label class="toggle-field">
+          <input id="clock-24h-toggle" type="checkbox">
+          <span>24-hour clock</span>
+        </label>
+        <label class="field">
+          <span>Refresh frequency</span>
+          <select id="refresh-frequency-select">
+            <option value="3000">3 seconds</option>
+            <option value="5000" selected>5 seconds</option>
+            <option value="10000">10 seconds</option>
+            <option value="30000">30 seconds</option>
+          </select>
         </label>
       </div>
 
