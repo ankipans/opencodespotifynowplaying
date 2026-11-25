@@ -72,6 +72,10 @@ button, input { font: inherit; }
   margin: 0 auto;
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
+body.ui-idle,
+body.ui-idle * {
+  cursor: none !important;
+}
 body.ui-idle .header {
   opacity: 0;
   pointer-events: none;
@@ -221,21 +225,26 @@ body.ui-idle .header {
 
 .player-layout {
   width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, min(56vh, 46vw, 720px)) minmax(0, 1fr);
-  gap: clamp(24px, 5vw, 72px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 88px);
   align-items: center;
+  justify-items: stretch;
 }
 
 .art-wrap {
   position: relative;
   width: 100%;
+  max-width: min(58vh, 640px);
   aspect-ratio: 1;
   border-radius: clamp(8px, 1.2vw, 18px);
   overflow: hidden;
   background: rgba(var(--fg-rgb),0.04);
   box-shadow: 0 30px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--fg-rgb),0.06);
   isolation: isolate;
+  justify-self: center;
 }
 .album-art {
   width: 100%;
@@ -437,9 +446,10 @@ body.hide-controls .playback-controls {
 
 @media (max-height: 700px) and (min-width: 901px) {
   .player-layout {
-    grid-template-columns: minmax(0, min(62vh, 40vw, 520px)) minmax(0, 1fr);
-    gap: clamp(20px, 4vw, 48px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(20px, 4vw, 56px);
   }
+  .art-wrap { max-width: min(66vh, 520px); }
   .track-name { font-size: clamp(1.8rem, 4.8vw, 4rem); }
   .progress-wrap { margin-top: clamp(16px, 3vh, 32px); }
 }

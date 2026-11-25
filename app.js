@@ -14,6 +14,8 @@
     verifier: 'sp_code_verifier',
     state: 'sp_auth_state',
     showControls: 'sp_show_controls',
+    showDevice: 'sp_show_device',
+    showPlaylist: 'sp_show_playlist',
   };
 
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -29,6 +31,8 @@
     saveClientId: document.getElementById('save-client-id'),
     clearData: document.getElementById('clear-data'),
     showControlsToggle: document.getElementById('show-controls-toggle'),
+    showDeviceToggle: document.getElementById('show-device-toggle'),
+    showPlaylistToggle: document.getElementById('show-playlist-toggle'),
     setupMessage: document.getElementById('setup-message'),
     loginBtn: document.getElementById('login-btn'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -84,9 +88,25 @@
     return v === null ? true : v === '1';
   }
 
+  function getShowDevice() {
+    const v = localStorage.getItem(STORAGE.showDevice);
+    return v === null ? true : v === '1';
+  }
+
+  function getShowPlaylist() {
+    const v = localStorage.getItem(STORAGE.showPlaylist);
+    return v === null ? true : v === '1';
+  }
+
   function applyShowControls(show) {
     document.body.classList.toggle('hide-controls', !show);
     if (el.showControlsToggle) el.showControlsToggle.checked = !!show;
+  }
+
+  function applySourceVisibility() {
+    if (el.showDeviceToggle) el.showDeviceToggle.checked = getShowDevice();
+    if (el.showPlaylistToggle) el.showPlaylistToggle.checked = getShowPlaylist();
+    renderPlaybackSource(currentDeviceText, lastContextName);
   }
 
   function getToken() {
@@ -294,6 +314,7 @@
   let lastBgColor = null;
   let lastContextUri = null;
   let lastContextName = '';
+  let currentDeviceText = '';
   async function setBackground(imageUrl) {
     const next = imageUrl || '';
     if (next === lastBgImage && lastBgColor) {
@@ -314,8 +335,9 @@
   }
 
   function renderPlaybackSource(deviceName, contextName) {
-    const device = deviceName || '';
-    const context = contextName || '';
+    currentDeviceText = deviceName || '';
+    const device = getShowDevice() ? (deviceName || '') : '';
+    const context = getShowPlaylist() ? (contextName || '') : '';
     if (el.deviceName) el.deviceName.textContent = device;
     if (el.contextName) el.contextName.textContent = context;
     if (el.contextSep) el.contextSep.hidden = !(device && context);
@@ -856,6 +878,18 @@
         applyShowControls(show);
       });
     }
+    if (el.showDeviceToggle) {
+      el.showDeviceToggle.addEventListener('change', () => {
+        localStorage.setItem(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
+        applySourceVisibility();
+      });
+    }
+    if (el.showPlaylistToggle) {
+      el.showPlaylistToggle.addEventListener('change', () => {
+        localStorage.setItem(STORAGE.showPlaylist, el.showPlaylistToggle.checked ? '1' : '0');
+        applySourceVisibility();
+      });
+    }
 
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
@@ -882,6 +916,7 @@
     el.clientIdInput.value = getClientId();
     applyShowControls(getShowControls());
     renderNothingPlaying();
+    applySourceVisibility();
     initEvents();
     syncFullscreenButton();
     syncWakeLockButton();
@@ -910,10 +945,40 @@
     showTransientStatus('Ready to connect.', 2500);
   }
 
+  const UPDATE_CHECK_MS = 5 * 60 * 1000;
+  let appFingerprint = null;
+  function simpleHash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return String(h);
+  }
+  async function checkForUpdates() {
+    try {
+      const res = await fetch('./app.js?update=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const text = await res.text();
+      const hash = simpleHash(text);
+      if (appFingerprint === null) {
+        appFingerprint = hash;
+        return;
+      }
+      if (hash !== appFingerprint) {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Update check failed', err);
+    }
+  }
+
   init().catch((err) => {
     console.error(err);
     showPanel('setup');
     el.setupPanel.hidden = false;
     setMessage('Unexpected error: ' + (err.message || String(err)), 'error');
   });
+
+  setInterval(checkForUpdates, UPDATE_CHECK_MS);
+  setTimeout(checkForUpdates, 15000);
 })();
