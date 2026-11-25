@@ -475,6 +475,7 @@
     setProgress(0, 0);
     setDocumentTitle('', '');
     setBackground('');
+    updateMediaSession(null, null, '');
   }
 
   function renderPlayback(data) {
@@ -532,6 +533,7 @@
     setProgress(progress, duration);
     setDocumentTitle(title, artists);
     setBackground(image);
+    updateMediaSession(data, item, image);
   }
 
   async function exchangeToken(params) {
@@ -895,6 +897,45 @@
     }
   }
 
+  function initMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    const bind = (action, handler) => {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {}
+    };
+    bind('play', () => { controlPlayback('toggle').catch(console.error); });
+    bind('pause', () => { controlPlayback('toggle').catch(console.error); });
+    bind('previoustrack', () => { controlPlayback('previous').catch(console.error); });
+    bind('nexttrack', () => { controlPlayback('next').catch(console.error); });
+  }
+
+  function updateMediaSession(data, item, image) {
+    if (!('mediaSession' in navigator)) return;
+    if (!data || !item) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+      return;
+    }
+    const title = item.name || 'Unknown title';
+    const artist = Array.isArray(item.artists)
+      ? item.artists.map((a) => a.name).filter(Boolean).join(', ')
+      : (item.show && item.show.publisher) || '';
+    const album = item.type === 'track' ? ((item.album && item.album.name) || '') : ((item.show && item.show.name) || '');
+    const artwork = image ? [{ src: image, sizes: '512x512', type: 'image/jpeg' }] : [];
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title, artist, album, artwork });
+    } catch (e) {}
+    navigator.mediaSession.playbackState = data.is_playing ? 'playing' : 'paused';
+    try {
+      if (typeof item.duration_ms === 'number' && typeof data.progress_ms === 'number' && navigator.mediaSession.setPositionState) {
+        navigator.mediaSession.setPositionState({
+          duration: Math.max(0, item.duration_ms / 1000),
+          playbackRate: 1,
+          position: Math.max(0, Math.min(item.duration_ms / 1000, data.progress_ms / 1000)),
+        });
+      }
+    } catch (e) {}
+  }
+
   function isPlayerVisible() {
     return el.playerPanel && !el.playerPanel.hidden;
   }
@@ -1066,6 +1107,7 @@
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();
+    initMediaSession();
     initEvents();
     syncFullscreenButton();
     syncWakeLockButton();

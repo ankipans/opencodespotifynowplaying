@@ -16,8 +16,6 @@
     setupPanel: $('setup-panel'),
     playerPanel: $('player-panel'),
     settingsToggle: $('settings-toggle'),
-    wakeBtn: $('wake-btn'),
-    fullscreenBtn: $('fullscreen-btn'),
     accessTokenInput: $('access-token-input'),
     saveAccessToken: $('save-access-token'),
     clearData: $('clear-data'),
@@ -55,8 +53,6 @@
   var lastContextName = '';
   var currentDeviceText = '';
   var lastImage = '';
-  var wakeLock = null;
-  var wakeLockWanted = false;
   var idleTimer = null;
   var IDLE_MS = 10000;
 
@@ -357,54 +353,6 @@
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
   }
 
-  function isFullscreen() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-  }
-  function syncFullscreenBtn() {
-    if (!el.fullscreenBtn) return;
-    var active = isFullscreen();
-    el.fullscreenBtn.textContent = active ? 'Exit Fullscreen' : 'Fullscreen';
-  }
-  function toggleFullscreen() {
-    if (isFullscreen()) {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      else if (document.msExitFullscreen) document.msExitFullscreen();
-      return;
-    }
-    var root = document.documentElement;
-    if (root.requestFullscreen) root.requestFullscreen();
-    else if (root.webkitRequestFullscreen) root.webkitRequestFullscreen();
-    else if (root.msRequestFullscreen) root.msRequestFullscreen();
-    else showTransientStatus('Fullscreen not supported on this browser.');
-  }
-  function syncWakeBtn() {
-    if (!el.wakeBtn) return;
-    var supported = !!(navigator.wakeLock && navigator.wakeLock.request);
-    if (!supported) { el.wakeBtn.textContent = 'Stay Awake N/A'; return; }
-    el.wakeBtn.textContent = wakeLockWanted ? 'Awake On' : 'Stay Awake';
-  }
-  function requestWakeLock() {
-    if (!(navigator.wakeLock && navigator.wakeLock.request)) { syncWakeBtn(); return; }
-    try {
-      navigator.wakeLock.request('screen').then(function (lock) {
-        wakeLock = lock;
-        wakeLockWanted = true;
-        syncWakeBtn();
-        lock.addEventListener('release', function () { wakeLock = null; syncWakeBtn(); });
-      }).catch(function () { wakeLockWanted = false; syncWakeBtn(); });
-    } catch (e) { wakeLockWanted = false; syncWakeBtn(); }
-  }
-  function releaseWakeLock() {
-    wakeLockWanted = false;
-    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
-    syncWakeBtn();
-  }
-  function toggleWakeLock() {
-    if (!(navigator.wakeLock && navigator.wakeLock.request)) { showTransientStatus('Wake lock not supported on this browser.'); syncWakeBtn(); return; }
-    if (wakeLockWanted) releaseWakeLock();
-    else requestWakeLock();
-  }
 
   function resetIdleTimer() {
     if (document.body.className.indexOf('ui-idle') !== -1) {
@@ -424,8 +372,6 @@
       el.setupPanel.style.display = opening ? 'block' : 'none';
       if (opening) { syncCurrentTokenDisplay(); setMessage(''); }
     };
-    if (el.fullscreenBtn) el.fullscreenBtn.onclick = function () { toggleFullscreen(); };
-    if (el.wakeBtn) el.wakeBtn.onclick = function () { toggleWakeLock(); };
     if (el.prevBtn) el.prevBtn.onclick = function () {
       apiFetch('/me/player/previous', 'POST', function (err) { if (err) showTransientStatus(err.message); else setTimeout(fetchNowPlaying, 400); });
     };
@@ -439,11 +385,7 @@
         else setTimeout(fetchNowPlaying, 300);
       });
     };
-    document.addEventListener('fullscreenchange', syncFullscreenBtn);
-    document.addEventListener('webkitfullscreenchange', syncFullscreenBtn);
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && wakeLockWanted && !wakeLock) requestWakeLock();
-    });
+
     var activityEvents = ['mousemove', 'mousedown', 'touchstart', 'keydown'];
     for (var i = 0; i < activityEvents.length; i++) {
       document.addEventListener(activityEvents[i], resetIdleTimer, false);
@@ -501,8 +443,6 @@
     applySourceVisibility();
     syncCurrentTokenDisplay();
     bindEvents();
-    syncFullscreenBtn();
-    syncWakeBtn();
     resetIdleTimer();
 
     var token = getToken();

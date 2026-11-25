@@ -8,7 +8,7 @@ button, input { font: inherit; }
 .bg-overlay { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.15); }
 
 .app { position: relative; z-index: 1; min-height: 100vh; padding: 12px; }
-.header { overflow: hidden; margin-bottom: 20px; }
+.header { overflow: hidden; margin-bottom: 0; }
 .brand { float: left; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ddd; padding-top: 10px; }
 .header-actions { float: right; }
 
@@ -37,14 +37,14 @@ button, input { font: inherit; }
 .message.error { color: #ff9999; }
 .message.success { color: #fff; }
 
-.player-panel { max-width: 1400px; margin: 0 auto; padding: 20px 0; }
+.player-panel { max-width: 1400px; margin: 20px auto 0; padding: 20px 0; }
 .player-layout { display: table; width: 100%; table-layout: fixed; }
 .art-wrap, .track-info { display: table-cell; vertical-align: middle; }
 .art-wrap { width: 45%; padding-right: 32px; position: relative; }
 .album-art { width: 100%; max-width: 560px; height: auto; display: block; background: #111; }
 .art-placeholder { display: none; }
 .track-info { width: 55%; }
-.status-badge { margin: 0 0 12px; color: #bbb; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; text-align: center; }
+.status-badge { margin: 0 0 12px; color: #bbb; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 700; }
 .status-badge.playing { color: #fff; }
 .track-name { margin: 0 0 10px; font-size: 56px; line-height: 1.05; letter-spacing: -0.02em; word-wrap: break-word; }
 .track-artist { margin: 0 0 6px; font-size: 28px; color: #ddd; word-wrap: break-word; }
