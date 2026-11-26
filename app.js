@@ -25,6 +25,7 @@
     refreshInterval: 'sp_refresh_interval',
     mediaSession: 'sp_media_session',
     tabBadge: 'sp_tab_badge',
+    fullscreen: 'sp_want_fullscreen',
     theme: 'sp_theme',
   };
 
@@ -97,11 +98,14 @@
 
   let pollTimer = null;
   let progressTimer = null;
+  let rateLimitTimer = null;
   let currentPlayback = null;
   let lastProgressAt = 0;
   let isFetching = false;
   let wakeLock = null;
   let wakeLockWanted = false;
+  let fullscreenWanted = localStorage.getItem(STORAGE.fullscreen) === '1';
+  let unloadingForRefresh = false;
   let statusTimer = null;
   let idleTimer = null;
   let clockTimer = null;
@@ -855,8 +859,11 @@
 
     if (res.status === 204) return null;
     if (res.status === 429) {
-      const retryAfter = Number(res.headers.get('Retry-After') || '5');
-      throw new Error(`Rate limited. Retrying in ${retryAfter}s.`);
+      const retryAfter = Math.max(1, Number(res.headers.get('Retry-After') || '5'));
+      const err = new Error(`Rate limited by Spotify. Retrying in ${retryAfter}s.`);
+      err.retryAfter = retryAfter;
+      err.status = 429;
+      throw err;
     }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -887,10 +894,22 @@
       if (el.loginPanel.hidden && el.playerPanel.hidden) showPanel('player');
     } catch (err) {
       console.error(err);
-      showTransientStatus(err.message || 'Failed to fetch playback.', 4000);
-      if (String(err.message).includes('Not authenticated') || String(err.message).includes('Session expired')) {
-        stopPolling();
-        showPanel(getClientId() ? 'login' : 'setup');
+      if (err && (err.status === 429 || String(err.message || '').includes('Rate limited'))) {
+        const retryAfter = Math.max(1, Number(err.retryAfter || 5));
+        showTransientStatus(`Rate limited by Spotify. Retrying in ${retryAfter}s.`, Math.min(retryAfter, 10) * 1000);
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+        if (rateLimitTimer) clearTimeout(rateLimitTimer);
+        rateLimitTimer = setTimeout(() => {
+          rateLimitTimer = null;
+          if (getToken() && !document.hidden) startPolling();
+        }, retryAfter * 1000);
+      } else {
+        showTransientStatus(err.message || 'Failed to fetch playback.', 4000);
+        if (String(err.message || '').includes('Not authenticated') || String(err.message || '').includes('Session expired')) {
+          stopPolling();
+          showPanel(getClientId() ? 'login' : 'setup');
+        }
       }
     } finally {
       isFetching = false;
@@ -900,6 +919,7 @@
   function stopPolling() {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    if (rateLimitTimer) { clearTimeout(rateLimitTimer); rateLimitTimer = null; }
   }
 
   function startPolling() {
@@ -1012,9 +1032,8 @@
       return true;
     }
 
-    let clientId = getClientId();
-    if (!clientId && qrState && qrState.c) {
-      clientId = String(qrState.c);
+    let clientId = (qrState && qrState.c) ? String(qrState.c) : getClientId();
+    if (qrState && qrState.c) {
       setClientId(clientId);
       if (el.clientIdInput) el.clientIdInput.value = clientId;
     }
@@ -1042,14 +1061,15 @@
       });
       syncCurrentTokenDisplay();
       if (qrState && qrState.qr) {
-        showPanel('player');
-        if (el.setupPanel) el.setupPanel.hidden = false;
-        setMessage('Signed in. Copy the access token below and paste it on your TV/device.', 'success');
+        stopPolling();
+        showPanel('setup');
+        setMessage('Signed in on this device. Copy the access token below and paste it on your TV/device.', 'success');
+        showTransientStatus('Token ready to copy.', 4000);
       } else {
         setMessage('');
         showPanel('player');
+        startPolling();
       }
-      startPolling();
     } catch (err) {
       console.error(err);
       showPanel(getClientId() ? 'login' : 'setup');
@@ -1075,6 +1095,8 @@
   async function toggleFullscreen() {
     try {
       if (isFullscreen()) {
+        fullscreenWanted = false;
+        localStorage.setItem(STORAGE.fullscreen, '0');
         if (document.exitFullscreen) await document.exitFullscreen();
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         return;
@@ -1088,9 +1110,16 @@
         root.msRequestFullscreen();
       } else {
         showTransientStatus('Fullscreen is not supported in this browser.');
+        return;
       }
+      fullscreenWanted = true;
+      localStorage.setItem(STORAGE.fullscreen, '1');
     } catch (err) {
       console.error('Fullscreen failed', err);
+      if (!isFullscreen()) {
+        fullscreenWanted = false;
+        localStorage.setItem(STORAGE.fullscreen, '0');
+      }
       showTransientStatus('Fullscreen could not be started.');
     } finally {
       syncFullscreenButton();
@@ -1101,6 +1130,25 @@
     const active = isFullscreen();
     el.fullscreenBtn.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
     el.fullscreenBtn.title = active ? 'Exit fullscreen' : 'Enter fullscreen';
+  }
+
+  function handleFullscreenChange() {
+    syncFullscreenButton();
+    if (!isFullscreen() && !unloadingForRefresh) {
+      fullscreenWanted = false;
+      localStorage.setItem(STORAGE.fullscreen, '0');
+    }
+  }
+
+  function installFullscreenRestore() {
+    if (!fullscreenWanted || isFullscreen()) return;
+    const events = ['pointerdown', 'keydown', 'touchstart'];
+    const handler = function () {
+      if (!fullscreenWanted || isFullscreen()) { remove(); return; }
+      toggleFullscreen().catch(() => {}).finally(remove);
+    };
+    function remove() { events.forEach((e) => document.removeEventListener(e, handler, true)); }
+    events.forEach((e) => document.addEventListener(e, handler, true));
   }
 
   function syncWakeLockButton() {
@@ -1466,6 +1514,7 @@
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applyMediaSessionEnabled(true);
       applyTabBadgeEnabled(true);
+      fullscreenWanted = false;
       applyUiTheme(DEFAULT_UI_THEME);
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
@@ -1593,8 +1642,9 @@
     if (el.prevBtn) el.prevBtn.addEventListener('click', () => { controlPlayback('previous').catch(console.error); });
     if (el.playpauseBtn) el.playpauseBtn.addEventListener('click', () => { controlPlayback('toggle').catch(console.error); });
     if (el.nextBtn) el.nextBtn.addEventListener('click', () => { controlPlayback('next').catch(console.error); });
-    document.addEventListener('fullscreenchange', syncFullscreenButton);
-    document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    window.addEventListener('beforeunload', () => { unloadingForRefresh = true; });
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -1628,6 +1678,7 @@
     syncFullscreenButton();
     syncWakeLockButton();
     resetIdleTimer();
+    installFullscreenRestore();
 
     const handledCallback = await handleCallback();
     if (handledCallback) return;

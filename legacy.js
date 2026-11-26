@@ -70,6 +70,7 @@
   var pollTimer = null;
   var clockTimer = null;
   var progressTimer = null;
+  var rateLimitTimer = null;
   var isFetching = false;
   var currentPlayback = null;
   var lastProgressAt = 0;
@@ -181,6 +182,16 @@
       if (status >= 200 && status < 300) { cb(null, data); return; }
       var errMsg = (data && data.error && data.error.message) ? data.error.message : ('Request failed (' + status + ')');
       if (status === 401) errMsg = 'Not authenticated or token expired.';
+      if (status === 429) {
+        var ra = parseInt(xhr.getResponseHeader('Retry-After'), 10);
+        if (!ra || ra < 1) ra = 5;
+        errMsg = 'Rate limited by Spotify. Retrying in ' + ra + 's.';
+        var err429 = new Error(errMsg);
+        err429.status = 429;
+        err429.retryAfter = ra;
+        cb(err429);
+        return;
+      }
       var err = new Error(errMsg);
       err.status = status;
       cb(err);
@@ -493,6 +504,18 @@
     apiFetch('/me/player/currently-playing', 'GET', function (err, data) {
       if (err) {
         isFetching = false;
+        if (err.status === 429) {
+          var retryAfter = Math.max(1, parseInt(err.retryAfter, 10) || 5);
+          showTransientStatus('Rate limited by Spotify. Retrying in ' + retryAfter + 's.');
+          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+          if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+          if (rateLimitTimer) clearTimeout(rateLimitTimer);
+          rateLimitTimer = setTimeout(function () {
+            rateLimitTimer = null;
+            if (getToken() && getToken().access_token) startPolling();
+          }, retryAfter * 1000);
+          return;
+        }
         showTransientStatus(err.message || 'Failed to fetch playback.');
         if (err.status === 401) { stopPolling(); showPanel('setup'); }
         return;
@@ -527,6 +550,7 @@
   function stopPolling() {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    if (rateLimitTimer) { clearTimeout(rateLimitTimer); rateLimitTimer = null; }
   }
 
 
