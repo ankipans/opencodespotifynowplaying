@@ -40,10 +40,6 @@
     clock24hToggle: $('clock-24h-toggle'),
     refreshFrequencySelect: $('refresh-frequency-select'),
     tabBadgeToggle: $('tab-badge-toggle'),
-    showQrLogin: $('show-qr-login'),
-    qrLoginPanel: $('qr-login-panel'),
-    qrLoginImg: $('qr-login-img'),
-    qrLoginUrl: $('qr-login-url'),
     topClock: $('top-clock'),
     topClockTime: $('top-clock-time'),
     topClockDate: $('top-clock-date'),
@@ -741,12 +737,6 @@
       var on = !!el.tabBadgeToggle.checked;
       setStored(STORAGE.tabBadge, on ? '1' : '0');
       if (!on) playbackIndicator(false); else playbackIndicator(!!(currentPlayback && currentPlayback.isPlaying));
-    };
-    if (el.showQrLogin) el.showQrLogin.onclick = function () {
-      var url = window.location.href.split('#')[0];
-      if (el.qrLoginImg) el.qrLoginImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=' + encodeURIComponent(url);
-      if (el.qrLoginUrl) el.qrLoginUrl.textContent = url;
-      if (el.qrLoginPanel) el.qrLoginPanel.style.display = 'block';
     };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');

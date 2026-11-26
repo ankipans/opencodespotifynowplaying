@@ -57,14 +57,6 @@
     refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
     mediaSessionToggle: document.getElementById('media-session-toggle'),
     tabBadgeToggle: document.getElementById('tab-badge-toggle'),
-    showQrLogin: document.getElementById('show-qr-login'),
-    qrLoginPanel: document.getElementById('qr-login-panel'),
-    qrLoginImg: document.getElementById('qr-login-img'),
-    qrLoginUrl: document.getElementById('qr-login-url'),
-    copyQrLoginUrl: document.getElementById('copy-qr-login-url'),
-    showQrLoginAlt: document.getElementById('show-qr-login-alt'),
-    qrLoginPanelAlt: document.getElementById('qr-login-panel-alt'),
-    qrLoginImgAlt: document.getElementById('qr-login-img-alt'),
     topClock: document.getElementById('top-clock'),
     topClockTime: document.getElementById('top-clock-time'),
     topClockDate: document.getElementById('top-clock-date'),
@@ -237,7 +229,7 @@
   }
 
   function updateClock() {
-    if (!el.topClock || el.topClock.hidden) return;
+    if (!el.topClock || el.topClock.classList.contains('clock-hidden')) return;
     const now = new Date();
     const hour12 = !getClock24h();
     if (el.topClockTime) el.topClockTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: hour12 });
@@ -247,7 +239,10 @@
   function applyShowClock(mode) {
     const m = (mode === 'active' || mode === 'always') ? mode : 'hidden';
     const visible = m !== 'hidden';
-    if (el.topClock) el.topClock.hidden = !visible;
+    if (el.topClock) {
+      el.topClock.classList.toggle('clock-hidden', !visible);
+      el.topClock.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    }
     document.body.classList.toggle('clock-active', m === 'active');
     document.body.classList.toggle('clock-always', m === 'always');
     if (el.showClockSelect) el.showClockSelect.value = m;
@@ -963,27 +958,6 @@
     }, PROGRESS_TICK);
   }
 
-  function base64UrlEncodeString(str) {
-    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  }
-
-  async function buildQrLoginUrl() {
-    const clientId = getClientId();
-    if (!clientId) throw new Error('Enter your Spotify Client ID first.');
-    const { verifier, challenge } = await createPkce();
-    const state = base64UrlEncodeString(JSON.stringify({ s: randomString(12), v: verifier, c: clientId, qr: 1 }));
-    const params = new URLSearchParams({
-      client_id: clientId,
-      response_type: 'code',
-      redirect_uri: REDIRECT_URI,
-      code_challenge_method: 'S256',
-      code_challenge: challenge,
-      state,
-      scope: SCOPES.join(' '),
-    });
-    return AUTH_ENDPOINT + '?' + params.toString();
-  }
-
   async function login() {
     let clientId = getClientId();
     if (!clientId) {
@@ -1018,16 +992,6 @@
     window.location.assign(AUTH_ENDPOINT + '?' + params.toString());
   }
 
-  function parseQrState(raw) {
-    if (!raw) return null;
-    try {
-      const json = atob(raw.replace(/-/g, '+').replace(/_/g, '/'));
-      const obj = JSON.parse(json);
-      if (obj && obj.v && obj.s) return obj;
-    } catch (e) {}
-    return null;
-  }
-
   async function handleCallback() {
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
@@ -1054,10 +1018,7 @@
       return true;
     }
 
-    const qrState = parseQrState(state);
-    const stateOk = (state && expectedState && state === expectedState) || (!!qrState && !expectedState);
-    if (qrState && !verifier) verifier = qrState.v;
-    if (!state || !stateOk) {
+    if (!state || !expectedState || state !== expectedState) {
       showPanel(getClientId() ? 'login' : 'setup');
       setMessage('Security check failed (state mismatch). Please try connecting again.', 'error');
       return true;
@@ -1069,11 +1030,7 @@
       return true;
     }
 
-    let clientId = (qrState && qrState.c) ? String(qrState.c) : getClientId();
-    if (qrState && qrState.c) {
-      setClientId(clientId);
-      if (el.clientIdInput) el.clientIdInput.value = clientId;
-    }
+    const clientId = getClientId();
     if (!clientId) {
       showPanel('setup');
       setMessage('Client ID missing. Save it and connect again.', 'error');
@@ -1097,16 +1054,9 @@
         token_type: data.token_type || 'Bearer',
       });
       syncCurrentTokenDisplay();
-      if (qrState && qrState.qr) {
-        stopPolling();
-        showPanel('setup');
-        setMessage('Signed in on this device. Copy the access token below and paste it on your TV/device.', 'success');
-        showTransientStatus('Token ready to copy.', 4000);
-      } else {
-        setMessage('');
-        showPanel('player');
-        startPolling();
-      }
+      setMessage('');
+      showPanel('player');
+      startPolling();
     } catch (err) {
       console.error(err);
       showPanel(getClientId() ? 'login' : 'setup');
@@ -1165,6 +1115,7 @@
 
   function syncFullscreenButton() {
     const active = isFullscreen();
+    el.fullscreenBtn.classList.toggle('is-fullscreen', active);
     el.fullscreenBtn.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
     el.fullscreenBtn.title = active ? 'Exit fullscreen' : 'Enter fullscreen';
   }
@@ -1478,42 +1429,6 @@
         setMessage('Could not copy automatically. Copy the URI manually.', 'error');
       }
     });
-
-    async function showQrLogin(imgEl, panelEl) {
-      try {
-        const url = await buildQrLoginUrl();
-        const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=' + encodeURIComponent(url);
-        if (imgEl) imgEl.src = qrSrc;
-        if (el.qrLoginUrl) el.qrLoginUrl.textContent = url;
-        if (panelEl) panelEl.hidden = false;
-      } catch (err) {
-        setMessage(err.message || 'Could not generate QR sign-in.', 'error');
-      }
-    }
-
-    if (el.showQrLogin) {
-      el.showQrLogin.addEventListener('click', async () => {
-        await showQrLogin(el.qrLoginImg, el.qrLoginPanel);
-      });
-    }
-    if (el.showQrLoginAlt) {
-      el.showQrLoginAlt.addEventListener('click', async () => {
-        await showQrLogin(el.qrLoginImgAlt, el.qrLoginPanelAlt);
-      });
-    }
-    if (el.copyQrLoginUrl) {
-      el.copyQrLoginUrl.addEventListener('click', async () => {
-        const text = el.qrLoginUrl ? el.qrLoginUrl.textContent : '';
-        if (!text) return;
-        try {
-          await navigator.clipboard.writeText(text);
-          el.copyQrLoginUrl.textContent = 'Copied!';
-          setTimeout(() => { if (el.copyQrLoginUrl) el.copyQrLoginUrl.textContent = 'Copy URL'; }, 1500);
-        } catch {
-          setMessage('Could not copy automatically. Copy the URL manually.', 'error');
-        }
-      });
-    }
 
     el.saveClientId.addEventListener('click', () => {
       const value = el.clientIdInput.value.trim();

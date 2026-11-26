@@ -69,14 +69,14 @@ button, input { font: inherit; }
   pointer-events: none;
   user-select: none;
   justify-self: center;
-  min-width: 0;
+  min-width: clamp(100px, 18vw, 180px);
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 body.ui-idle.clock-active .top-clock {
   opacity: 0;
   transform: translateY(-8px);
 }
-.top-clock[hidden] { display: none !important; }
+.top-clock.clock-hidden { visibility: hidden; pointer-events: none; }
 .top-clock-time {
   display: block;
   font-size: clamp(0.95rem, 1.8vw, 1.35rem);
@@ -152,6 +152,8 @@ body.ui-idle .header .header-actions {
 .icon-compress { display: none !important; }
 :fullscreen .icon-expand, :-webkit-full-screen .icon-expand { display: none !important; }
 :fullscreen .icon-compress, :-webkit-full-screen .icon-compress { display: block !important; }
+.icon-btn.is-fullscreen .icon-expand { display: none !important; }
+.icon-btn.is-fullscreen .icon-compress { display: block !important; }
 
 .panel {
   width: min(720px, 100%);
@@ -252,13 +254,6 @@ body.ui-idle .header .header-actions {
   color: var(--fg);
 }
 .manual-token .small { margin: 10px 0 0; }
-.qr-login { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(var(--fg-rgb), 0.12); }
-.qr-login-title { margin: 0 0 8px; font-size: 0.95rem; font-weight: 700; color: var(--fg); }
-.qr-login-center { text-align: center; border-top: none; padding-top: 12px; }
-.qr-panel { margin-top: 12px; }
-.qr-panel[hidden] { display: none !important; }
-.qr-img { display: block; width: 220px; height: 220px; max-width: 100%; border-radius: 12px; background: #fff; padding: 8px; margin: 0 0 10px; }
-.qr-login-center .qr-img { margin-left: auto; margin-right: auto; }
 
 .btn {
   appearance: none;
@@ -605,6 +600,7 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   .header-actions { gap: 6px; }
   .icon-btn { width: 40px; height: 40px; border-radius: 10px; }
   .brand-text { display: none; }
+  .top-clock { min-width: 0; }
   .copy-row { flex-direction: column; }
   .art-wrap { width: min(100%, 44vh, 420px); }
   .playback-source { white-space: normal; text-align: center; }

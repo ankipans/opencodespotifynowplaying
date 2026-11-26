@@ -34,7 +34,7 @@
         </svg>
         <span class="brand-text">Now Playing</span>
       </div>
-      <div id="top-clock" class="top-clock" hidden aria-live="off">
+      <div id="top-clock" class="top-clock clock-hidden" aria-live="off" aria-hidden="true">
         <span id="top-clock-time" class="top-clock-time"></span>
         <span id="top-clock-date" class="top-clock-date"></span>
       </div>
@@ -177,21 +177,6 @@
           </div>
         </details>
 
-        <div class="qr-login">
-          <h4 class="qr-login-title">QR sign-in (TV / remote device)</h4>
-          <p class="muted small">Generate a QR code to open Spotify login on your phone. After login on your phone, copy the access token from Settings and paste it here.</p>
-          <div class="setup-actions">
-            <button id="show-qr-login" class="btn btn-secondary" type="button">Show QR sign-in</button>
-          </div>
-          <div id="qr-login-panel" class="qr-panel" hidden>
-            <img id="qr-login-img" class="qr-img" alt="QR code for Spotify sign-in" width="220" height="220">
-            <p class="muted small">Scan with your phone, complete login, then copy the token from your phone’s Settings.</p>
-            <div class="copy-row">
-              <code id="qr-login-url" class="copy-value"></code>
-              <button id="copy-qr-login-url" class="btn btn-secondary" type="button">Copy URL</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="manual-token">
@@ -226,13 +211,6 @@
         <p class="muted">Sign in to display your current playback. Authorization uses Spotify PKCE over HTTPS.</p>
         <button id="login-btn" class="btn btn-primary btn-large" type="button">Connect with Spotify</button>
         <p class="muted small" style="margin-top:12px;"><button id="login-advanced-btn" class="link-btn" type="button">Use your own Client ID / API setup</button></p>
-        <div class="qr-login qr-login-center">
-          <button id="show-qr-login-alt" class="btn btn-secondary" type="button">QR sign-in for phone/TV</button>
-          <div id="qr-login-panel-alt" class="qr-panel" hidden>
-            <img id="qr-login-img-alt" class="qr-img" alt="QR code for Spotify sign-in" width="220" height="220">
-            <p class="muted small">Scan with your phone, complete login, then copy the access token from your phone’s Settings.</p>
-          </div>
-        </div>
       </div>
     </section>
 
