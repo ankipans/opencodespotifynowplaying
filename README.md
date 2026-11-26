@@ -5,10 +5,19 @@ A lightweight static web app that shows your current Spotify playback status. It
 ## Features
 
 - Secure Spotify login with **Authorization Code + PKCE** (no client secret)
-- Displays current track, artist, album, artwork, playback progress, and device
+- Displays current track, artist, album, artwork, playback progress, device, and playlist name
 - Polls Spotify for now-playing updates while the tab is open
 - Stores Client ID and tokens only in your browser's local storage
 - Works as a static site on **GitHub Pages** over HTTPS
+- Has a feature that keeps the device awake, when it is toggled (moon icon)
+- Show/hide date and time at the top of the screen
+- Hides UI after 5 seconds of inactivity
+- Allows to show/hide UI elements that YOU want to see and display
+- Has a legacy look for devices that aren't powerful enough to display the modern look
+- Fullscreen mode to focus on your music listening
+- Tab name displays the name and artist of the song, and a badge that music is currently active
+- Support for legacy devices that can't open the Spotify login page, use the client secret from a moder logged in device and put it in the legacy device for a working now playing (works for about 1 hour then Spotify rotates it)
+- Now playing integration with you web browser now playing media, for example, phone lock screen shows the media information with ability to play/pause skip forward and backward track and scrub the track to a place in the song you like
 
 ## HTTPS callback / redirect URI
 
