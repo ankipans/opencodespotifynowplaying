@@ -985,14 +985,19 @@
   }
 
   async function login() {
-    const clientId = getClientId();
+    let clientId = getClientId();
     if (!clientId) {
-      showPanel('setup');
-      const adv = document.querySelector('.advanced-connection');
-      if (adv) adv.open = true;
-      if (el.clientIdInput) el.clientIdInput.focus();
-      setMessage('Enter your Spotify Client ID first, or paste an access token below.', 'error');
-      return;
+      const entered = window.prompt('Enter your Spotify Client ID to connect (found in your Spotify Developer Dashboard):', '');
+      if (!entered || !entered.trim()) {
+        showPanel('setup');
+        const adv = document.querySelector('.advanced-connection');
+        if (adv) adv.open = true;
+        setMessage('Spotify Client ID required to connect. You can set it in Advanced, or paste an access token below.', 'error');
+        return;
+      }
+      clientId = entered.trim();
+      setClientId(clientId);
+      if (el.clientIdInput) el.clientIdInput.value = clientId;
     }
 
     const { verifier, challenge } = await createPkce();
