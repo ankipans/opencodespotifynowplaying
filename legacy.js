@@ -11,6 +11,7 @@
     showStatus: 'sp_show_status',
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
+    showVolume: 'sp_show_volume',
     showClock: 'sp_show_clock',
     clock24h: 'sp_clock_24h',
     refreshInterval: 'sp_refresh_interval',
@@ -34,6 +35,7 @@
     showStatusToggle: $('show-status-toggle'),
     showAlbumToggle: $('show-album-toggle'),
     showProgressToggle: $('show-progress-toggle'),
+    showVolumeToggle: $('show-volume-toggle'),
     showClockSelect: $('show-clock-select'),
     clock24hToggle: $('clock-24h-toggle'),
     refreshFrequencySelect: $('refresh-frequency-select'),
@@ -57,9 +59,12 @@
     progressFill: $('progress-fill'),
     progressCurrent: $('progress-current'),
     progressDuration: $('progress-duration'),
+    progressBar: document.querySelector('.progress-bar'),
     prevBtn: $('prev-btn'),
     playpauseBtn: $('playpause-btn'),
     nextBtn: $('next-btn'),
+    volumeWrap: $('volume-wrap'),
+    volumeSlider: $('volume-slider'),
     deviceName: $('device-name'),
     contextName: $('context-name'),
     contextSep: $('context-sep'),
@@ -72,6 +77,8 @@
   var progressTimer = null;
   var rateLimitTimer = null;
   var isFetching = false;
+  var volumeDragging = false;
+  var seekDragging = false;
   var currentPlayback = null;
   var lastProgressAt = 0;
   var lastContextUri = null;
@@ -267,6 +274,12 @@
     if (show) document.body.className = document.body.className.replace(/\bhide-progress\b/g, '');
     else if (document.body.className.indexOf('hide-progress') === -1) document.body.className += ' hide-progress';
     if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
+  }
+
+  function applyShowVolume(show) {
+    if (show) document.body.className = document.body.className.replace(/\bhide-volume\b/g, '');
+    else if (document.body.className.indexOf('hide-volume') === -1) document.body.className += ' hide-volume';
+    if (el.showVolumeToggle) el.showVolumeToggle.checked = !!show;
   }
 
   function getRefreshInterval() {
@@ -494,6 +507,10 @@
     setBackground(image);
     setProgress(progress, duration);
     renderPlaybackSource(data.device && data.device.name ? data.device.name : '', lastContextName);
+    if (el.volumeSlider && !volumeDragging && data.device && typeof data.device.volume_percent === 'number') {
+      el.volumeSlider.value = String(data.device.volume_percent);
+      el.volumeSlider.title = data.device.volume_percent + '%';
+    }
     fetchPlaylistName(data.context && data.context.uri ? data.context.uri : null);
     playbackIndicator(!!data.is_playing);
   }
@@ -585,6 +602,37 @@
         else setTimeout(fetchNowPlaying, 300);
       });
     };
+    if (el.volumeSlider) {
+      el.volumeSlider.onmousedown = function () { volumeDragging = true; };
+      el.volumeSlider.ontouchstart = function () { volumeDragging = true; };
+      el.volumeSlider.onmouseup = function () { volumeDragging = false; };
+      el.volumeSlider.ontouchend = function () { volumeDragging = false; };
+      el.volumeSlider.onchange = function () {
+        volumeDragging = false;
+        var v = Math.max(0, Math.min(100, parseInt(el.volumeSlider.value, 10) || 0));
+        apiFetch('/me/player/volume?volume_percent=' + v, 'PUT', function (err) {
+          if (err) showTransientStatus(err.message);
+        });
+      };
+    }
+    if (el.progressBar) {
+      el.progressBar.style.cursor = 'pointer';
+      el.progressBar.onclick = function (e) {
+        if (!currentPlayback || !currentPlayback.durationMs) return;
+        var rect = el.progressBar.getBoundingClientRect();
+        var x = (e.clientX || 0) - rect.left;
+        if (x < 0) x = 0; if (x > rect.width) x = rect.width;
+        var pct = rect.width > 0 ? x / rect.width : 0;
+        var ms = Math.floor(pct * currentPlayback.durationMs);
+        apiFetch('/me/player/seek?position_ms=' + ms, 'PUT', function (err) {
+          if (err) { showTransientStatus(err.message); return; }
+          currentPlayback.progressMs = Math.min(ms, currentPlayback.durationMs || ms);
+          lastProgressAt = (new Date()).getTime();
+          setProgress(currentPlayback.progressMs, currentPlayback.durationMs || 0);
+          setTimeout(fetchNowPlaying, 500);
+        });
+      };
+    }
 
     var activityEvents = ['mousemove', 'mousedown', 'touchstart', 'keydown'];
     for (var i = 0; i < activityEvents.length; i++) {
@@ -610,6 +658,7 @@
       removeStored(STORAGE.showStatus);
       removeStored(STORAGE.showAlbum);
       removeStored(STORAGE.showProgress);
+      removeStored(STORAGE.showVolume);
       removeStored(STORAGE.showClock);
       removeStored(STORAGE.clock24h);
       removeStored(STORAGE.refreshInterval);
@@ -622,6 +671,7 @@
       applyShowStatus(true);
       applyShowAlbum(true);
       applyShowProgress(true);
+      applyShowVolume(true);
       applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
@@ -660,6 +710,11 @@
       var show = !!el.showProgressToggle.checked;
       setStored(STORAGE.showProgress, show ? '1' : '0');
       applyShowProgress(show);
+    };
+    if (el.showVolumeToggle) el.showVolumeToggle.onchange = function () {
+      var show = !!el.showVolumeToggle.checked;
+      setStored(STORAGE.showVolume, show ? '1' : '0');
+      applyShowVolume(show);
     };
     if (el.showControlsSelect) el.showControlsSelect.onchange = function () {
       var mode = el.showControlsSelect.value;
@@ -709,6 +764,7 @@
     applyShowStatus(getBool(STORAGE.showStatus, true));
     applyShowAlbum(getBool(STORAGE.showAlbum, true));
     applyShowProgress(getBool(STORAGE.showProgress, true));
+    applyShowVolume(getBool(STORAGE.showVolume, true));
     applyShowClock(getMode(STORAGE.showClock, 'hidden'));
     if (el.clock24hToggle) el.clock24hToggle.checked = getBool(STORAGE.clock24h, false);
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());

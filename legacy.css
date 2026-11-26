@@ -71,6 +71,8 @@ button, input { font: inherit; }
 .playback-controls { margin: 8px 0; text-align: center; }
 .control-btn { border: 1px solid #666; background: #1a1a1a; color: #fff; padding: 10px 16px; margin: 0 4px; cursor: pointer; font-size: 14px; }
 .control-btn-main { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
+.volume-wrap { margin-left: 8px; vertical-align: middle; }
+.volume-slider { width: 110px; vertical-align: middle; }
 .playback-source { margin: 0; color: #ccc; }
 body.ui-idle .brand, body.ui-idle .header-actions, body.ui-idle .playback-controls { visibility: hidden; }
 body.ui-idle.controls-always .playback-controls { visibility: visible; }
@@ -84,6 +86,7 @@ body.hide-art .progress-wrap { margin-left: auto; margin-right: auto; }
 body.hide-status .status-badge { display: none; }
 body.hide-album .track-album { display: none; }
 body.hide-progress .progress-wrap { display: none; }
+body.hide-volume .volume-wrap { display: none; }
 
 @media (max-width: 800px) {
   .player-layout, .art-wrap, .track-info { display: block; width: 100%; }

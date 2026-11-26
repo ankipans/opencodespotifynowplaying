@@ -69,9 +69,9 @@
 
     <section id="setup-panel" class="panel setup-panel" hidden>
       <h2>Setup</h2>
-      <p class="muted">Adjust appearance first, then connect Spotify below.</p>
+      <p class="muted">Connect Spotify to get started. Appearance options are available after you connect.</p>
 
-      <div class="settings-group">
+      <div class="settings-group" id="appearance-group">
         <h3 class="settings-group-title">Appearance</h3>
         <label class="field">
           <span>Theme</span>
@@ -112,6 +112,10 @@
           <input id="show-progress-toggle" type="checkbox" checked>
           <span>Show progress bar</span>
         </label>
+        <label class="toggle-field">
+          <input id="show-volume-toggle" type="checkbox" checked>
+          <span>Show volume slider</span>
+        </label>
         <label class="field">
           <span>Date and time</span>
           <select id="show-clock-select">
@@ -145,23 +149,34 @@
 
       <div class="settings-group">
         <h3 class="settings-group-title">Connection</h3>
-        <p class="muted small">Create a Spotify app and use this page as the redirect URI. Your Client ID is stored only in this browser.</p>
-        <ol class="setup-steps">
-          <li>Go to the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a> and create an app.</li>
-          <li>Add this exact Redirect URI in the app settings:</li>
-        </ol>
-        <div class="copy-row">
-          <code id="redirect-uri" class="copy-value"></code>
-          <button id="copy-redirect" class="btn btn-secondary" type="button">Copy</button>
-        </div>
-        <label class="field">
-          <span>Spotify Client ID</span>
-          <input id="client-id-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your Client ID">
-        </label>
+        <p class="muted small">Connect with Spotify to display your playback. You can use the standard login, or configure your own Spotify API Client ID.</p>
         <div class="setup-actions">
-          <button id="save-client-id" class="btn btn-primary" type="button">Save Client ID</button>
+          <button id="connect-spotify-btn" class="btn btn-primary" type="button">Connect with Spotify</button>
           <button id="clear-data" class="btn btn-danger" type="button">Clear stored data</button>
         </div>
+
+        <details class="advanced-connection">
+          <summary>Advanced: use your own Spotify Client ID (API setup)</summary>
+          <div class="advanced-connection-body">
+            <p class="muted small">Create a Spotify app and use this page as the redirect URI. Your Client ID is stored only in this browser.</p>
+            <ol class="setup-steps">
+              <li>Go to the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">Spotify Developer Dashboard</a> and create an app.</li>
+              <li>Add this exact Redirect URI in the app settings:</li>
+            </ol>
+            <div class="copy-row">
+              <code id="redirect-uri" class="copy-value"></code>
+              <button id="copy-redirect" class="btn btn-secondary" type="button">Copy</button>
+            </div>
+            <label class="field">
+              <span>Spotify Client ID</span>
+              <input id="client-id-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste your Client ID">
+            </label>
+            <div class="setup-actions">
+              <button id="save-client-id" class="btn btn-primary" type="button">Save Client ID</button>
+            </div>
+          </div>
+        </details>
+
         <div class="qr-login">
           <h4 class="qr-login-title">QR sign-in (TV / remote device)</h4>
           <p class="muted small">Generate a QR code to open Spotify login on your phone. After login on your phone, copy the access token from Settings and paste it here.</p>
@@ -210,6 +225,7 @@
         <h2>Connect Spotify</h2>
         <p class="muted">Sign in to display your current playback. Authorization uses Spotify PKCE over HTTPS.</p>
         <button id="login-btn" class="btn btn-primary btn-large" type="button">Connect with Spotify</button>
+        <p class="muted small" style="margin-top:12px;"><button id="login-advanced-btn" class="link-btn" type="button">Use your own Client ID / API setup</button></p>
         <div class="qr-login qr-login-center">
           <button id="show-qr-login-alt" class="btn btn-secondary" type="button">QR sign-in for phone/TV</button>
           <div id="qr-login-panel-alt" class="qr-panel" hidden>
@@ -264,6 +280,10 @@
         <button id="next-btn" class="control-btn" type="button" aria-label="Next track" title="Next track">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM5 19l9.5-7L5 5z"/></svg>
         </button>
+        <div id="volume-wrap" class="volume-wrap" aria-label="Volume">
+          <svg class="volume-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 8.97v6.02A4.47 4.47 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          <input id="volume-slider" class="volume-slider" type="range" min="0" max="100" value="50" step="1" aria-label="Volume">
+        </div>
       </div>
       <p id="playback-source" class="playback-source"><span id="device-name"></span><span id="context-sep" class="context-sep" hidden> · </span><span id="context-name"></span></p>
     </footer>

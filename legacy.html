@@ -46,6 +46,7 @@
         <label class="toggle-field"><input id="show-status-toggle" type="checkbox" checked> <span>Show status</span></label>
         <label class="toggle-field"><input id="show-album-toggle" type="checkbox" checked> <span>Show album name</span></label>
         <label class="toggle-field"><input id="show-progress-toggle" type="checkbox" checked> <span>Show progress bar</span></label>
+        <label class="toggle-field"><input id="show-volume-toggle" type="checkbox" checked> <span>Show volume slider</span></label>
         <label class="field">
           <span>Date and time</span>
           <select id="show-clock-select">
@@ -134,6 +135,7 @@
         <button id="prev-btn" class="control-btn" type="button" aria-label="Previous track">Prev</button>
         <button id="playpause-btn" class="control-btn control-btn-main" type="button" aria-label="Play">Play</button>
         <button id="next-btn" class="control-btn" type="button" aria-label="Next track">Next</button>
+        <span id="volume-wrap" class="volume-wrap"><input id="volume-slider" class="volume-slider" type="range" min="0" max="100" value="50" step="1" aria-label="Volume"></span>
       </div>
       <p id="playback-source" class="playback-source"><span id="device-name"></span><span id="context-sep" class="context-sep" style="display:none;"> &middot; </span><span id="context-name"></span></p>
     </div>

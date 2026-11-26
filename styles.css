@@ -235,6 +235,10 @@ body.ui-idle .header .header-actions {
   font-weight: 700;
   color: var(--fg);
 }
+.advanced-connection { margin-top: 14px; border: 1px solid rgba(var(--fg-rgb), 0.14); border-radius: 10px; background: rgba(var(--fg-rgb), 0.03); }
+.advanced-connection summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--fg); }
+.advanced-connection-body { padding: 0 14px 14px; }
+.advanced-connection .setup-actions { margin-top: 12px; }
 .manual-token {
   margin: 20px 0;
   padding: 20px 0;
@@ -271,6 +275,8 @@ body.ui-idle .header .header-actions {
 .btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-fg); }
 .btn-primary:hover { filter: brightness(0.9); }
 .btn-secondary { background: rgba(var(--fg-rgb),0.08); color: var(--fg); border-color: rgba(var(--fg-rgb),0.14); }
+.link-btn { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+.link-btn:hover { color: var(--fg); }
 .btn-secondary:hover { background: rgba(var(--fg-rgb),0.14); }
 .btn-danger { background: transparent; color: #ff8a8a; border-color: rgba(255,107,107,0.35); }
 .btn-danger:hover { background: rgba(255,107,107,0.1); }
@@ -373,6 +379,8 @@ body.ui-idle .header .header-actions {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
+  max-width: 100%;
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 body.ui-idle .playback-controls {
@@ -400,6 +408,7 @@ body.hide-art .progress-wrap { max-width: 560px; width: 100%; }
 body.hide-status .status-row { display: none !important; }
 body.hide-album .track-album { display: none !important; }
 body.hide-progress .progress-wrap { display: none !important; }
+body.hide-volume #volume-wrap { display: none !important; }
 .control-btn {
   display: inline-grid;
   place-items: center;
@@ -420,6 +429,11 @@ body.hide-progress .progress-wrap { display: none !important; }
 .control-btn .icon-pause { display: none; }
 .control-btn.is-playing .icon-play { display: none; }
 .control-btn.is-playing .icon-pause { display: block; }
+.volume-wrap { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid rgba(var(--fg-rgb), 0.18); }
+.volume-icon { width: 18px; height: 18px; color: var(--muted); flex: 0 0 auto; }
+.volume-slider { width: clamp(80px, 12vw, 140px); accent-color: var(--fg); cursor: pointer; }
+body.theme-legacy .volume-wrap { border-left-color: #555; }
+body.theme-legacy .volume-slider { accent-color: #fff; }
 
 .track-name {
   margin: 0;
@@ -456,6 +470,7 @@ body.hide-progress .progress-wrap { display: none !important; }
   background: rgba(var(--fg-rgb),0.18);
   border-radius: 999px;
   overflow: hidden;
+  cursor: pointer;
 }
 .progress-fill {
   height: 100%;

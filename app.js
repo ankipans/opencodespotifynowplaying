@@ -20,6 +20,7 @@
     showStatus: 'sp_show_status',
     showAlbum: 'sp_show_album',
     showProgress: 'sp_show_progress',
+    showVolume: 'sp_show_volume',
     showClock: 'sp_show_clock',
     clock24h: 'sp_clock_24h',
     refreshInterval: 'sp_refresh_interval',
@@ -35,6 +36,7 @@
     setupPanel: document.getElementById('setup-panel'),
     loginPanel: document.getElementById('login-panel'),
     playerPanel: document.getElementById('player-panel'),
+    appearanceGroup: document.getElementById('appearance-group'),
     settingsToggle: document.getElementById('settings-toggle'),
     redirectUri: document.getElementById('redirect-uri'),
     copyRedirect: document.getElementById('copy-redirect'),
@@ -49,6 +51,7 @@
     showStatusToggle: document.getElementById('show-status-toggle'),
     showAlbumToggle: document.getElementById('show-album-toggle'),
     showProgressToggle: document.getElementById('show-progress-toggle'),
+    showVolumeToggle: document.getElementById('show-volume-toggle'),
     showClockSelect: document.getElementById('show-clock-select'),
     clock24hToggle: document.getElementById('clock-24h-toggle'),
     refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
@@ -72,6 +75,7 @@
     copyCurrentToken: document.getElementById('copy-current-token'),
     setupMessage: document.getElementById('setup-message'),
     loginBtn: document.getElementById('login-btn'),
+    connectSpotifyBtn: document.getElementById('connect-spotify-btn'),
     logoutBtn: document.getElementById('logout-btn'),
     albumArt: document.getElementById('album-art'),
     artWrap: document.querySelector('.art-wrap'),
@@ -80,6 +84,8 @@
     prevBtn: document.getElementById('prev-btn'),
     playpauseBtn: document.getElementById('playpause-btn'),
     nextBtn: document.getElementById('next-btn'),
+    volumeWrap: document.getElementById('volume-wrap'),
+    volumeSlider: document.getElementById('volume-slider'),
     trackName: document.getElementById('track-name'),
     trackArtist: document.getElementById('track-artist'),
     trackAlbum: document.getElementById('track-album'),
@@ -102,6 +108,8 @@
   let currentPlayback = null;
   let lastProgressAt = 0;
   let isFetching = false;
+  let volumeDragging = false;
+  let seekDragging = false;
   let wakeLock = null;
   let wakeLockWanted = false;
   let fullscreenWanted = localStorage.getItem(STORAGE.fullscreen) === '1';
@@ -165,6 +173,11 @@
     return v === null ? true : v === '1';
   }
 
+  function getShowVolume() {
+    const v = localStorage.getItem(STORAGE.showVolume);
+    return v === null ? true : v === '1';
+  }
+
   function getUiTheme() {
     return localStorage.getItem(STORAGE.theme) === 'legacy' ? 'legacy' : 'modern';
   }
@@ -200,6 +213,11 @@
   function applyShowProgress(show) {
     document.body.classList.toggle('hide-progress', !show);
     if (el.showProgressToggle) el.showProgressToggle.checked = !!show;
+  }
+
+  function applyShowVolume(show) {
+    document.body.classList.toggle('hide-volume', !show);
+    if (el.showVolumeToggle) el.showVolumeToggle.checked = !!show;
   }
 
   function getShowClock() {
@@ -339,11 +357,13 @@
   function setToken(token) {
     localStorage.setItem(STORAGE.token, JSON.stringify(token));
     syncCurrentTokenDisplay();
+    syncAppearanceVisibility();
   }
 
   function clearToken() {
     localStorage.removeItem(STORAGE.token);
     syncCurrentTokenDisplay();
+    syncAppearanceVisibility();
   }
 
   function clearAllData() {
@@ -381,11 +401,16 @@
     return { verifier, challenge };
   }
 
+  function syncAppearanceVisibility() {
+    if (el.appearanceGroup) el.appearanceGroup.hidden = !getToken();
+  }
+
   function showPanel(name) {
     el.setupPanel.hidden = name !== 'setup';
     el.loginPanel.hidden = name !== 'login';
     el.playerPanel.hidden = name !== 'player';
     if (el.logoutBtn) el.logoutBtn.hidden = name !== 'player';
+    syncAppearanceVisibility();
     if (name === 'player') resetIdleTimer();
     else document.body.classList.remove('ui-idle');
   }
@@ -769,6 +794,10 @@
     el.trackAlbum.textContent = album;
     const deviceText = data.device && data.device.name ? `Listening on ${data.device.name}` : '';
     renderPlaybackSource(deviceText, lastContextUri === (data.context && data.context.uri) ? lastContextName : '');
+    if (el.volumeSlider && !volumeDragging && data.device && typeof data.device.volume_percent === 'number') {
+      el.volumeSlider.value = String(data.device.volume_percent);
+      el.volumeSlider.title = data.device.volume_percent + '%';
+    }
     updateContextName(data).catch(console.error);
     setProgress(progress, duration);
     setDocumentTitle(title, artists);
@@ -927,7 +956,7 @@
     fetchNowPlaying();
     pollTimer = setInterval(fetchNowPlaying, getRefreshInterval());
     progressTimer = setInterval(() => {
-      if (!currentPlayback || !currentPlayback.isPlaying) return;
+      if (!currentPlayback || !currentPlayback.isPlaying || seekDragging) return;
       const elapsed = Date.now() - lastProgressAt;
       const next = Math.min(currentPlayback.progressMs + elapsed, currentPlayback.durationMs);
       setProgress(next, currentPlayback.durationMs);
@@ -959,7 +988,10 @@
     const clientId = getClientId();
     if (!clientId) {
       showPanel('setup');
-      setMessage('Enter your Spotify Client ID first.', 'error');
+      const adv = document.querySelector('.advanced-connection');
+      if (adv) adv.open = true;
+      if (el.clientIdInput) el.clientIdInput.focus();
+      setMessage('Enter your Spotify Client ID first, or paste an access token below.', 'error');
       return;
     }
 
@@ -1211,6 +1243,22 @@
     syncWakeLockButton();
   }
 
+  async function seekToPosition(positionMs) {
+    const ms = Math.max(0, Math.floor(positionMs || 0));
+    try {
+      await apiFetch('/me/player/seek?position_ms=' + ms, { method: 'PUT' });
+      if (currentPlayback) {
+        currentPlayback.progressMs = Math.min(ms, currentPlayback.durationMs || ms);
+        lastProgressAt = Date.now();
+        setProgress(currentPlayback.progressMs, currentPlayback.durationMs || 0);
+      }
+      setTimeout(() => { fetchNowPlaying().catch(console.error); }, 500);
+    } catch (err) {
+      console.error('Seek failed', err);
+      showTransientStatus(err.message || 'Seek failed.', 2500);
+    }
+  }
+
   async function controlPlayback(action) {
     try {
       if (action === 'toggle') {
@@ -1244,6 +1292,10 @@
     bind('pause', () => { controlPlayback('pause').catch(console.error); });
     bind('previoustrack', () => { controlPlayback('previous').catch(console.error); });
     bind('nexttrack', () => { controlPlayback('next').catch(console.error); });
+    bind('seekto', (details) => {
+      if (!details || typeof details.seekTime !== 'number') return;
+      seekToPosition(Math.floor(details.seekTime * 1000)).catch(console.error);
+    });
   }
 
   const silentAudio = (() => {
@@ -1509,6 +1561,7 @@
       applyShowStatus(true);
       applyShowAlbum(true);
       applyShowProgress(true);
+      applyShowVolume(true);
       applyShowClock('hidden');
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
@@ -1568,6 +1621,13 @@
         const show = el.showProgressToggle.checked;
         localStorage.setItem(STORAGE.showProgress, show ? '1' : '0');
         applyShowProgress(show);
+      });
+    }
+    if (el.showVolumeToggle) {
+      el.showVolumeToggle.addEventListener('change', () => {
+        const show = el.showVolumeToggle.checked;
+        localStorage.setItem(STORAGE.showVolume, show ? '1' : '0');
+        applyShowVolume(show);
       });
     }
     if (el.showClockSelect) {
@@ -1636,12 +1696,69 @@
     }
 
     el.loginBtn.addEventListener('click', () => { login().catch(console.error); });
+    if (el.connectSpotifyBtn) el.connectSpotifyBtn.addEventListener('click', () => { login().catch(console.error); });
+    const loginAdvancedBtn = document.getElementById('login-advanced-btn');
+    if (loginAdvancedBtn) loginAdvancedBtn.addEventListener('click', () => {
+      showPanel('setup');
+      const adv = document.querySelector('.advanced-connection');
+      if (adv) adv.open = true;
+      if (el.clientIdInput) el.clientIdInput.focus();
+    });
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
     el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
     el.wakelockBtn.addEventListener('click', () => { toggleWakeLock().catch(console.error); });
     if (el.prevBtn) el.prevBtn.addEventListener('click', () => { controlPlayback('previous').catch(console.error); });
     if (el.playpauseBtn) el.playpauseBtn.addEventListener('click', () => { controlPlayback('toggle').catch(console.error); });
     if (el.nextBtn) el.nextBtn.addEventListener('click', () => { controlPlayback('next').catch(console.error); });
+    if (el.volumeSlider) {
+      const setVolume = async (val) => {
+        const v = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+        try { await apiFetch('/me/player/volume?volume_percent=' + v, { method: 'PUT' }); }
+        catch (e) { console.error('Volume failed', e); showTransientStatus(e.message || 'Volume change failed.', 2500); }
+      };
+      el.volumeSlider.addEventListener('pointerdown', () => { volumeDragging = true; });
+      el.volumeSlider.addEventListener('pointerup', () => { volumeDragging = false; });
+      el.volumeSlider.addEventListener('touchstart', () => { volumeDragging = true; }, { passive: true });
+      el.volumeSlider.addEventListener('touchend', () => { volumeDragging = false; });
+      el.volumeSlider.addEventListener('change', (e) => { volumeDragging = false; setVolume(e.target.value); });
+      el.volumeSlider.addEventListener('input', (e) => {
+        if (el.volumeSlider) el.volumeSlider.title = e.target.value + '%';
+      });
+    }
+    if (el.progressBar) {
+      const seekFromEvent = (e) => {
+        if (!currentPlayback || !currentPlayback.durationMs) return null;
+        const rect = el.progressBar.getBoundingClientRect();
+        const x = Math.min(Math.max((e.clientX || 0) - rect.left, 0), rect.width);
+        const pct = rect.width > 0 ? x / rect.width : 0;
+        return Math.floor(pct * currentPlayback.durationMs);
+      };
+      const onMove = (e) => {
+        if (!seekDragging) return;
+        const ms = seekFromEvent(e);
+        if (ms == null) return;
+        setProgress(ms, currentPlayback.durationMs);
+      };
+      const onUp = (e) => {
+        if (!seekDragging) return;
+        seekDragging = false;
+        el.progressBar.classList.remove('seeking');
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        const ms = seekFromEvent(e);
+        if (ms != null) seekToPosition(ms).catch(console.error);
+      };
+      el.progressBar.addEventListener('pointerdown', (e) => {
+        if (!currentPlayback || !currentPlayback.durationMs) return;
+        seekDragging = true;
+        el.progressBar.classList.add('seeking');
+        const ms = seekFromEvent(e);
+        if (ms != null) setProgress(ms, currentPlayback.durationMs);
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+      });
+      el.progressBar.style.cursor = 'pointer';
+    }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     window.addEventListener('beforeunload', () => { unloadingForRefresh = true; });
@@ -1665,6 +1782,7 @@
     applyShowStatus(getShowStatus());
     applyShowAlbum(getShowAlbum());
     applyShowProgress(getShowProgress());
+    applyShowVolume(getShowVolume());
     applyShowClock(getShowClock());
     if (el.clock24hToggle) el.clock24hToggle.checked = getClock24h();
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
