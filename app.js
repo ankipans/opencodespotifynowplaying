@@ -97,6 +97,7 @@
   };
 
   let pollTimer = null;
+  let pollWorker = null;
   let progressTimer = null;
   let rateLimitTimer = null;
   let currentPlayback = null;
@@ -976,7 +977,8 @@
       if (err && (err.status === 429 || String(err.message || '').includes('Rate limited'))) {
         const retryAfter = Math.max(1, Number(err.retryAfter || 5));
         showTransientStatus(`Rate limited by Spotify. Retrying in ${retryAfter}s.`, retryAfter * 1000 + 1000);
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (pollTimer === 'worker') { if (pollWorker) { try { pollWorker.postMessage({ ms: 0 }); } catch (e) {} } pollTimer = null; }
+        else if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
         if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
         if (rateLimitTimer) clearTimeout(rateLimitTimer);
         rateLimitTimer = setTimeout(() => {
@@ -995,8 +997,31 @@
     }
   }
 
+  function getPollWorker() {
+    if (pollWorker) return pollWorker;
+    if (typeof Worker === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return null;
+    try {
+      const src = 'var t=null;onmessage=function(e){var ms=e.data&&e.data.ms;if(t){clearInterval(t);t=null;}if(ms&&ms>0){t=setInterval(function(){postMessage(1);},ms);}};';
+      const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+      const w = new Worker(url);
+      w.onmessage = function () { fetchNowPlaying().catch(console.error); };
+      w.onerror = function () { try { w.terminate(); } catch (e) {} try { URL.revokeObjectURL(url); } catch (e) {} if (pollWorker === w) pollWorker = null; if (pollTimer === 'worker') { pollTimer = null; startPolling(); } };
+      pollWorker = w;
+      pollWorker._blobUrl = url;
+      return w;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    if (pollTimer === 'worker') {
+      if (pollWorker) { try { pollWorker.postMessage({ ms: 0 }); } catch (e) {} }
+      pollTimer = null;
+    } else if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
     if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
     if (rateLimitTimer) { clearTimeout(rateLimitTimer); rateLimitTimer = null; }
   }
@@ -1004,7 +1029,18 @@
   function startPolling() {
     stopPolling();
     fetchNowPlaying();
-    pollTimer = setInterval(fetchNowPlaying, getRefreshInterval());
+    const ms = getRefreshInterval();
+    const w = getPollWorker();
+    if (w) {
+      try {
+        w.postMessage({ ms: ms });
+        pollTimer = 'worker';
+      } catch (e) {
+        pollTimer = setInterval(fetchNowPlaying, ms);
+      }
+    } else {
+      pollTimer = setInterval(fetchNowPlaying, ms);
+    }
     progressTimer = setInterval(() => {
       if (!currentPlayback || !currentPlayback.isPlaying || seekDragging) return;
       const elapsed = Date.now() - lastProgressAt;

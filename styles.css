@@ -585,14 +585,14 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   .track-artist { font-size: clamp(1rem, 4vw, 1.5rem); }
 }
 
-@media (max-height: 700px) and (min-width: 901px) {
+@media (max-height: 820px) and (min-width: 901px) {
   .player-layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: clamp(20px, 4vw, 56px);
+    gap: clamp(16px, 3vw, 40px);
   }
-  .art-wrap { max-width: min(66vh, 520px); }
-  .track-name { font-size: clamp(1.8rem, 4.8vw, 4rem); }
-  .progress-wrap { margin-top: clamp(16px, 3vh, 32px); }
+  .art-wrap { max-width: min(62vh, 500px); }
+  .track-name { font-size: clamp(1.8rem, 4.5vw, 3.8rem); }
+  .progress-wrap { margin-top: clamp(14px, 2.5vh, 24px); }
 }
 
 @media (max-width: 520px) {
