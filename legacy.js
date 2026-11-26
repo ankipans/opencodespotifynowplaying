@@ -16,6 +16,7 @@
     clock24h: 'sp_clock_24h',
     refreshInterval: 'sp_refresh_interval',
     tabBadge: 'sp_tab_badge',
+    trackNotifications: 'sp_track_notifications',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -40,6 +41,7 @@
     clock24hToggle: $('clock-24h-toggle'),
     refreshFrequencySelect: $('refresh-frequency-select'),
     tabBadgeToggle: $('tab-badge-toggle'),
+    trackNotifyToggle: $('track-notify-toggle'),
     topClock: $('top-clock'),
     topClockTime: $('top-clock-time'),
     topClockDate: $('top-clock-date'),
@@ -81,6 +83,7 @@
   var lastContextName = '';
   var currentDeviceText = '';
   var lastImage = '';
+  var lastNotifiedTrackId = null;
   var idleTimer = null;
   var IDLE_MS = 10000;
 
@@ -341,6 +344,49 @@
 
   function getTabBadgeEnabled() { return getBool(STORAGE.tabBadge, true); }
 
+  function getTrackNotificationsEnabled() { return getBool(STORAGE.trackNotifications, false); }
+
+  function ensureTrackNotificationPermission(cb) {
+    var done = false;
+    function finish(ok) { if (done) return; done = true; if (cb) cb(ok); }
+    if (typeof Notification === 'undefined') { showTransientStatus('Notifications are not supported in this browser.'); finish(false); return; }
+    if (Notification.permission === 'granted') { finish(true); return; }
+    if (Notification.permission === 'denied') { showTransientStatus('Notification permission is blocked in browser settings.'); finish(false); return; }
+    try {
+      var res = Notification.requestPermission(function (perm) { finish(perm === 'granted'); });
+      if (res && typeof res.then === 'function') {
+        res.then(function (perm) { finish(perm === 'granted'); }).catch(function () { finish(false); });
+      }
+    } catch (e) { finish(false); }
+  }
+
+  function applyTrackNotificationsEnabled(enabled) {
+    if (el.trackNotifyToggle) el.trackNotifyToggle.checked = !!enabled;
+    if (enabled) ensureTrackNotificationPermission(function () {});
+  }
+
+  function notifyTrackChange(trackId, title, artist, album, image) {
+    if (!trackId || trackId === lastNotifiedTrackId) return;
+    var isFirstSeen = lastNotifiedTrackId === null;
+    lastNotifiedTrackId = trackId;
+    if (isFirstSeen) return;
+    if (!getTrackNotificationsEnabled()) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    var parts = [];
+    if (artist) parts.push(artist);
+    if (album) parts.push(album);
+    var body = parts.join(' • ') || 'Now playing';
+    try {
+      var n = new Notification(title || 'Now playing', {
+        body: body,
+        icon: image || './favicon.svg',
+        tag: 'spotify-now-playing-track',
+        silent: false
+      });
+      setTimeout(function () { try { n.close(); } catch (e) {} }, 6000);
+    } catch (e) {}
+  }
+
   var playbackIndicator = (function () {
     var link = null;
     var baseImg = null;
@@ -421,6 +467,7 @@
 
   function renderNothingPlaying(message) {
     currentPlayback = null;
+    lastNotifiedTrackId = 'none';
     if (el.albumArt) { el.albumArt.removeAttribute('src'); el.albumArt.alt = ''; }
     if (el.statusBadge) { el.statusBadge.textContent = 'Idle'; el.statusBadge.className = 'status-badge'; }
     if (el.playpauseBtn) { el.playpauseBtn.textContent = 'Play'; el.playpauseBtn.setAttribute('aria-label', 'Play'); }
@@ -508,6 +555,7 @@
       el.volumeSlider.title = data.device.volume_percent + '%';
     }
     fetchPlaylistName(data.context && data.context.uri ? data.context.uri : null);
+    notifyTrackChange(item.uri || item.id || '', title, artists, album, image);
     playbackIndicator(!!data.is_playing);
   }
 
@@ -659,6 +707,7 @@
       removeStored(STORAGE.clock24h);
       removeStored(STORAGE.refreshInterval);
       removeStored(STORAGE.tabBadge);
+      removeStored(STORAGE.trackNotifications);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
@@ -672,6 +721,8 @@
       if (el.clock24hToggle) el.clock24hToggle.checked = false;
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       if (el.tabBadgeToggle) el.tabBadgeToggle.checked = true;
+      if (el.trackNotifyToggle) el.trackNotifyToggle.checked = false;
+      lastNotifiedTrackId = null;
       playbackIndicator(false);
       applySourceVisibility();
       renderNothingPlaying('Paste an access token in Settings to see your playback.');
@@ -738,6 +789,21 @@
       setStored(STORAGE.tabBadge, on ? '1' : '0');
       if (!on) playbackIndicator(false); else playbackIndicator(!!(currentPlayback && currentPlayback.isPlaying));
     };
+    if (el.trackNotifyToggle) el.trackNotifyToggle.onchange = function () {
+      var on = !!el.trackNotifyToggle.checked;
+      if (on) {
+        ensureTrackNotificationPermission(function (ok) {
+          if (!ok) {
+            if (el.trackNotifyToggle) el.trackNotifyToggle.checked = false;
+            setStored(STORAGE.trackNotifications, '0');
+            return;
+          }
+          setStored(STORAGE.trackNotifications, '1');
+        });
+        return;
+      }
+      setStored(STORAGE.trackNotifications, '0');
+    };
     if (el.showDeviceToggle) el.showDeviceToggle.onchange = function () {
       setStored(STORAGE.showDevice, el.showDeviceToggle.checked ? '1' : '0');
       applySourceVisibility();
@@ -746,6 +812,14 @@
       setStored(STORAGE.showPlaylist, el.showPlaylistToggle.checked ? '1' : '0');
       applySourceVisibility();
     };
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      var token = getToken();
+      if (token && token.access_token && !rateLimitTimer) {
+        fetchNowPlaying();
+        if (!pollTimer) startPolling();
+      }
+    });
   }
 
   function init() {
@@ -759,6 +833,7 @@
     if (el.clock24hToggle) el.clock24hToggle.checked = getBool(STORAGE.clock24h, false);
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
     if (el.tabBadgeToggle) el.tabBadgeToggle.checked = getTabBadgeEnabled();
+    if (el.trackNotifyToggle) el.trackNotifyToggle.checked = getTrackNotificationsEnabled();
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();

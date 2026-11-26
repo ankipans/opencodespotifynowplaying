@@ -26,6 +26,7 @@
     refreshInterval: 'sp_refresh_interval',
     mediaSession: 'sp_media_session',
     tabBadge: 'sp_tab_badge',
+    trackNotifications: 'sp_track_notifications',
     fullscreen: 'sp_want_fullscreen',
     theme: 'sp_theme',
   };
@@ -57,6 +58,7 @@
     refreshFrequencySelect: document.getElementById('refresh-frequency-select'),
     mediaSessionToggle: document.getElementById('media-session-toggle'),
     tabBadgeToggle: document.getElementById('tab-badge-toggle'),
+    trackNotifyToggle: document.getElementById('track-notify-toggle'),
     topClock: document.getElementById('top-clock'),
     topClockTime: document.getElementById('top-clock-time'),
     topClockDate: document.getElementById('top-clock-date'),
@@ -112,6 +114,7 @@
   let lastMediaData = null;
   let lastMediaItem = null;
   let lastMediaImage = '';
+  let lastNotifiedTrackId = null;
   const IDLE_MS = (window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches)) ? 10000 : 5000;
   const DEFAULT_TITLE = 'Spotify Now Playing';
 
@@ -286,6 +289,56 @@
     } else if (currentPlayback) {
       playbackIndicator(!!currentPlayback.isPlaying);
     }
+  }
+
+  function getTrackNotificationsEnabled() {
+    return localStorage.getItem(STORAGE.trackNotifications) === '1';
+  }
+
+  async function ensureTrackNotificationPermission() {
+    if (!('Notification' in window)) {
+      showTransientStatus('Notifications are not supported in this browser.', 3000);
+      return false;
+    }
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') {
+      showTransientStatus('Notification permission is blocked in browser settings.', 3500);
+      return false;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        showTransientStatus('Notification permission was not granted.', 3000);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyTrackNotificationsEnabled(enabled) {
+    if (el.trackNotifyToggle) el.trackNotifyToggle.checked = !!enabled;
+    if (enabled) ensureTrackNotificationPermission().catch(console.error);
+  }
+
+  function notifyTrackChange(trackId, title, artist, album, image) {
+    if (!trackId || trackId === lastNotifiedTrackId) return;
+    const isFirstSeen = lastNotifiedTrackId === null;
+    lastNotifiedTrackId = trackId;
+    if (isFirstSeen) return;
+    if (!getTrackNotificationsEnabled()) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const body = [artist, album].filter(Boolean).join(' • ') || 'Now playing';
+    try {
+      const n = new Notification(title || 'Now playing', {
+        body,
+        icon: image || './favicon.svg',
+        tag: 'spotify-now-playing-track',
+        silent: false,
+      });
+      setTimeout(() => { try { n.close(); } catch (e) {} }, 6000);
+    } catch (e) {}
   }
 
   function getStoredAccessToken() {
@@ -715,6 +768,7 @@
     lastMediaData = null;
     lastMediaItem = null;
     lastMediaImage = '';
+    lastNotifiedTrackId = 'none';
     el.albumArt.removeAttribute('src');
     el.albumArt.alt = '';
     resetArtAspectRatio();
@@ -801,6 +855,7 @@
     lastMediaItem = item;
     lastMediaImage = image;
     updateMediaSession(data, item, image);
+    notifyTrackChange(item.uri || item.id || '', title, artists, album, image);
     playbackIndicator(!!data.is_playing);
   }
 
@@ -1487,6 +1542,8 @@
       if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(POLL_INTERVAL);
       applyMediaSessionEnabled(true);
       applyTabBadgeEnabled(true);
+      applyTrackNotificationsEnabled(false);
+      lastNotifiedTrackId = null;
       fullscreenWanted = false;
       applyUiTheme(DEFAULT_UI_THEME);
       renderNothingPlaying('Connect Spotify to see your playback.');
@@ -1583,6 +1640,20 @@
         const on = el.tabBadgeToggle.checked;
         localStorage.setItem(STORAGE.tabBadge, on ? '1' : '0');
         applyTabBadgeEnabled(on);
+      });
+    }
+    if (el.trackNotifyToggle) {
+      el.trackNotifyToggle.addEventListener('change', async () => {
+        const on = el.trackNotifyToggle.checked;
+        if (on) {
+          const ok = await ensureTrackNotificationPermission();
+          if (!ok) {
+            el.trackNotifyToggle.checked = false;
+            localStorage.setItem(STORAGE.trackNotifications, '0');
+            return;
+          }
+        }
+        localStorage.setItem(STORAGE.trackNotifications, on ? '1' : '0');
       });
     }
     if (el.themeSelect) {
@@ -1684,12 +1755,12 @@
     window.addEventListener('beforeunload', () => { unloadingForRefresh = true; });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-      } else {
-        if (getToken() && !rateLimitTimer) startPolling();
-        if (wakeLockWanted) requestWakeLock().catch(console.error);
+      if (document.hidden) return;
+      if (getToken() && !rateLimitTimer) {
+        fetchNowPlaying().catch(console.error);
+        if (!pollTimer) startPolling();
       }
+      if (wakeLockWanted) requestWakeLock().catch(console.error);
     });
   }
 
@@ -1708,6 +1779,7 @@
     if (el.refreshFrequencySelect) el.refreshFrequencySelect.value = String(getRefreshInterval());
     if (el.mediaSessionToggle) el.mediaSessionToggle.checked = getMediaSessionEnabled();
     if (el.tabBadgeToggle) el.tabBadgeToggle.checked = getTabBadgeEnabled();
+    if (el.trackNotifyToggle) el.trackNotifyToggle.checked = getTrackNotificationsEnabled();
     renderNothingPlaying();
     applySourceVisibility();
     syncCurrentTokenDisplay();
