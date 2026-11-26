@@ -580,7 +580,7 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   }
   .track-info { align-items: stretch; width: 100%; }
   .status-row { justify-content: flex-start; margin-bottom: 10px; }
-  .progress-wrap { max-width: 100%; width: 100%; margin-top: 16px; }
+  .progress-wrap { max-width: min(100%, 560px); width: 100%; margin-top: 16px; }
   .track-name { font-size: clamp(2rem, 8vw, 4rem); }
   .track-artist { font-size: clamp(1rem, 4vw, 1.5rem); }
 }
@@ -592,7 +592,7 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   }
   .art-wrap { max-width: min(62vh, 500px); }
   .track-name { font-size: clamp(1.8rem, 4.5vw, 3.8rem); }
-  .progress-wrap { margin-top: clamp(14px, 2.5vh, 24px); }
+  .progress-wrap { margin-top: clamp(14px, 2.5vh, 24px); max-width: min(100%, 560px); }
 }
 
 @media (max-width: 520px) {
@@ -605,7 +605,7 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   .player-layout { gap: 10px; }
   .art-wrap { width: min(100%, 38vh, 360px); }
   .status-row { margin-bottom: 8px; }
-  .progress-wrap { margin-top: 12px; max-width: 100%; }
+  .progress-wrap { margin-top: 12px; max-width: min(100%, 560px); }
   .playback-source { white-space: normal; text-align: center; }
 }
 

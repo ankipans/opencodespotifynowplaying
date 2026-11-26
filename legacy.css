@@ -91,7 +91,7 @@ body.hide-volume .volume-wrap { display: none; }
   .track-name { font-size: 36px; }
   .track-artist { font-size: 22px; }
   .track-album { font-size: 18px; }
-  .progress-wrap { margin-top: 16px; max-width: 100%; }
+  .progress-wrap { margin-top: 16px; max-width: min(100%, 560px); }
 }
 
 @media (max-height: 560px) and (orientation: landscape) {
