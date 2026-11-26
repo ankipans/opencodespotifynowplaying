@@ -896,7 +896,7 @@
       console.error(err);
       if (err && (err.status === 429 || String(err.message || '').includes('Rate limited'))) {
         const retryAfter = Math.max(1, Number(err.retryAfter || 5));
-        showTransientStatus(`Rate limited by Spotify. Retrying in ${retryAfter}s.`, Math.min(retryAfter, 10) * 1000);
+        showTransientStatus(`Rate limited by Spotify. Retrying in ${retryAfter}s.`, retryAfter * 1000 + 1000);
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
         if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
         if (rateLimitTimer) clearTimeout(rateLimitTimer);
@@ -1650,7 +1650,7 @@
       if (document.hidden) {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       } else {
-        if (getToken()) startPolling();
+        if (getToken() && !rateLimitTimer) startPolling();
         if (wakeLockWanted) requestWakeLock().catch(console.error);
       }
     });
