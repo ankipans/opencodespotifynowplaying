@@ -29,6 +29,7 @@
     trackNotifications: 'sp_track_notifications',
     fullscreen: 'sp_want_fullscreen',
     theme: 'sp_theme',
+    contentSize: 'sp_content_size',
   };
 
   const REDIRECT_URI = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
@@ -45,6 +46,7 @@
     saveClientId: document.getElementById('save-client-id'),
     clearData: document.getElementById('clear-data'),
     themeSelect: document.getElementById('theme-select'),
+    contentSizeSelect: document.getElementById('content-size-select'),
     showControlsSelect: document.getElementById('show-controls-select'),
     showDeviceToggle: document.getElementById('show-device-toggle'),
     showPlaylistToggle: document.getElementById('show-playlist-toggle'),
@@ -182,6 +184,18 @@
     const t = theme === 'legacy' ? 'legacy' : 'modern';
     document.body.classList.toggle('theme-legacy', t === 'legacy');
     if (el.themeSelect) el.themeSelect.value = t;
+  }
+
+  function getContentSize() {
+    const v = localStorage.getItem(STORAGE.contentSize);
+    return (v === 'small' || v === 'large') ? v : 'default';
+  }
+
+  function applyContentSize(size) {
+    const s = (size === 'small' || size === 'large') ? size : 'default';
+    document.body.classList.remove('size-small', 'size-large');
+    if (s !== 'default') document.body.classList.add('size-' + s);
+    if (el.contentSizeSelect) el.contentSizeSelect.value = s;
   }
 
   function applyShowControls(mode) {
@@ -1582,6 +1596,7 @@
       lastNotifiedTrackId = null;
       fullscreenWanted = false;
       applyUiTheme(DEFAULT_UI_THEME);
+      applyContentSize('default');
       renderNothingPlaying('Connect Spotify to see your playback.');
       showPanel('setup');
       if (el.logoutBtn) el.logoutBtn.hidden = true;
@@ -1699,6 +1714,14 @@
         applyUiTheme(theme);
       });
     }
+    if (el.contentSizeSelect) {
+      el.contentSizeSelect.addEventListener('change', () => {
+        const v = el.contentSizeSelect.value;
+        const size = (v === 'small' || v === 'large') ? v : 'default';
+        localStorage.setItem(STORAGE.contentSize, size);
+        applyContentSize(size);
+      });
+    }
     if (el.toggleTokenVisibility) {
       el.toggleTokenVisibility.addEventListener('click', () => {
         if (!el.currentTokenDisplay) return;
@@ -1804,6 +1827,7 @@
     el.redirectUri.textContent = REDIRECT_URI;
     el.clientIdInput.value = getClientId();
     applyUiTheme(getUiTheme());
+    applyContentSize(getContentSize());
     applyShowControls(getShowControls());
     applyShowArt(getShowArt());
     applyShowStatus(getShowStatus());

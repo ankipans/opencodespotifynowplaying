@@ -629,6 +629,49 @@ body.theme-legacy .track-name { letter-spacing: -0.02em; }
   .footer { gap: 4px; }
 }
 
+/* Content size */
+body.size-small .art-wrap { max-width: min(46vh, 500px); }
+body.size-small .track-name { font-size: clamp(1.8rem, 5.2vw, 4.6rem); }
+body.size-small .track-artist { font-size: clamp(1rem, 2vw, 1.65rem); }
+body.size-small .track-album { font-size: clamp(0.85rem, 1.3vw, 1.05rem); }
+body.size-small .status-badge { font-size: clamp(0.62rem, 0.8vw, 0.75rem); }
+body.size-small .progress-wrap { max-width: min(100%, 560px); }
+
+body.size-large .art-wrap { max-width: min(70vh, 780px); }
+body.size-large .track-name { font-size: clamp(2.8rem, 7.2vw, 7rem); }
+body.size-large .track-artist { font-size: clamp(1.35rem, 2.8vw, 2.35rem); }
+body.size-large .track-album { font-size: clamp(1.05rem, 1.8vw, 1.45rem); }
+body.size-large .status-badge { font-size: clamp(0.78rem, 1vw, 0.95rem); }
+body.size-large .progress-wrap { max-width: min(100%, 860px); }
+
+@media (max-width: 900px) {
+  body.size-small .art-wrap { width: min(100%, 40vh, 420px); }
+  body.size-small .track-name { font-size: clamp(1.7rem, 6.5vw, 3.2rem); }
+  body.size-small .track-artist { font-size: clamp(0.95rem, 3.4vw, 1.3rem); }
+  body.size-large .art-wrap { width: min(100%, 52vh, 560px); }
+  body.size-large .track-name { font-size: clamp(2.4rem, 9vw, 4.8rem); }
+  body.size-large .track-artist { font-size: clamp(1.15rem, 4.5vw, 1.8rem); }
+}
+
+@media (max-height: 820px) and (min-width: 901px) {
+  body.size-small .art-wrap { max-width: min(52vh, 420px); }
+  body.size-small .track-name { font-size: clamp(1.5rem, 3.8vw, 3rem); }
+  body.size-large .art-wrap { max-width: min(72vh, 600px); }
+  body.size-large .track-name { font-size: clamp(2.2rem, 5.2vw, 4.6rem); }
+}
+
+@media (max-width: 520px) {
+  body.size-small .art-wrap { width: min(100%, 32vh, 300px); }
+  body.size-large .art-wrap { width: min(100%, 44vh, 420px); }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  body.size-small .track-name { font-size: clamp(1.2rem, 3.8vw, 2.2rem); }
+  body.size-small .track-artist { font-size: clamp(0.85rem, 2vw, 1.1rem); }
+  body.size-large .track-name { font-size: clamp(1.7rem, 5.2vw, 3.4rem); }
+  body.size-large .track-artist { font-size: clamp(1.05rem, 2.8vw, 1.55rem); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

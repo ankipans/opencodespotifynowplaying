@@ -17,6 +17,7 @@
     refreshInterval: 'sp_refresh_interval',
     tabBadge: 'sp_tab_badge',
     trackNotifications: 'sp_track_notifications',
+    contentSize: 'sp_content_size',
     showDevice: 'sp_show_device',
     showPlaylist: 'sp_show_playlist'
   };
@@ -32,6 +33,7 @@
     currentTokenDisplay: $('current-token-display'),
     toggleTokenVisibility: $('toggle-token-visibility'),
     showControlsSelect: $('show-controls-select'),
+    contentSizeSelect: $('content-size-select'),
     showArtToggle: $('show-art-toggle'),
     showStatusToggle: $('show-status-toggle'),
     showAlbumToggle: $('show-album-toggle'),
@@ -340,6 +342,18 @@
       el.bgArt.style.backgroundImage = '';
       el.bgArt.style.opacity = '1';
     }
+  }
+
+  function getContentSize() {
+    var v = getStored(STORAGE.contentSize, 'default');
+    return (v === 'small' || v === 'large') ? v : 'default';
+  }
+
+  function applyContentSize(size) {
+    var s = (size === 'small' || size === 'large') ? size : 'default';
+    setBodyClass('size-small', s === 'small');
+    setBodyClass('size-large', s === 'large');
+    if (el.contentSizeSelect) el.contentSizeSelect.value = s;
   }
 
   function getTabBadgeEnabled() { return getBool(STORAGE.tabBadge, true); }
@@ -708,6 +722,7 @@
       removeStored(STORAGE.refreshInterval);
       removeStored(STORAGE.tabBadge);
       removeStored(STORAGE.trackNotifications);
+      removeStored(STORAGE.contentSize);
       removeStored(STORAGE.showDevice);
       removeStored(STORAGE.showPlaylist);
       if (el.accessTokenInput) el.accessTokenInput.value = '';
@@ -723,6 +738,7 @@
       if (el.tabBadgeToggle) el.tabBadgeToggle.checked = true;
       if (el.trackNotifyToggle) el.trackNotifyToggle.checked = false;
       lastNotifiedTrackId = null;
+      applyContentSize('default');
       playbackIndicator(false);
       applySourceVisibility();
       renderNothingPlaying('Paste an access token in Settings to see your playback.');
@@ -767,6 +783,12 @@
       var mode = el.showControlsSelect.value;
       setStored(STORAGE.showControls, mode);
       applyShowControls(mode);
+    };
+    if (el.contentSizeSelect) el.contentSizeSelect.onchange = function () {
+      var v = el.contentSizeSelect.value;
+      var size = (v === 'small' || v === 'large') ? v : 'default';
+      setStored(STORAGE.contentSize, size);
+      applyContentSize(size);
     };
     if (el.showClockSelect) el.showClockSelect.onchange = function () {
       var mode = el.showClockSelect.value;
@@ -824,6 +846,7 @@
 
   function init() {
     applyShowControls(getMode(STORAGE.showControls, 'active'));
+    applyContentSize(getContentSize());
     applyShowArt(getBool(STORAGE.showArt, true));
     applyShowStatus(getBool(STORAGE.showStatus, true));
     applyShowAlbum(getBool(STORAGE.showAlbum, true));

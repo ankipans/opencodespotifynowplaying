@@ -108,3 +108,36 @@ body.hide-volume .volume-wrap { display: none; }
   body.hide-art .track-info { display: block; width: 100%; text-align: center; }
   body.hide-art .status-badge { text-align: center; }
 }
+
+/* Content size */
+body.size-small .album-art { max-width: 420px; }
+body.size-small .track-name { font-size: 44px; }
+body.size-small .track-artist { font-size: 26px; }
+body.size-small .track-album { font-size: 18px; }
+body.size-small .status-badge { font-size: 14px; }
+body.size-small .progress-wrap { max-width: 460px; }
+
+body.size-large .album-art { max-width: 640px; }
+body.size-large .track-name { font-size: 68px; }
+body.size-large .track-artist { font-size: 38px; }
+body.size-large .track-album { font-size: 26px; }
+body.size-large .status-badge { font-size: 18px; }
+body.size-large .progress-wrap { max-width: 680px; }
+
+@media (max-width: 800px) {
+  body.size-small .track-name { font-size: 30px; }
+  body.size-small .track-artist { font-size: 18px; }
+  body.size-small .track-album { font-size: 15px; }
+  body.size-large .track-name { font-size: 44px; }
+  body.size-large .track-artist { font-size: 26px; }
+  body.size-large .track-album { font-size: 20px; }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  body.size-small .track-name { font-size: 24px; }
+  body.size-small .track-artist { font-size: 16px; }
+  body.size-small .track-album { font-size: 12px; }
+  body.size-large .track-name { font-size: 34px; }
+  body.size-large .track-artist { font-size: 22px; }
+  body.size-large .track-album { font-size: 16px; }
+}
