@@ -86,11 +86,12 @@ body.hide-volume .volume-wrap { display: none; }
 
 @media (max-width: 800px) {
   .player-layout, .art-wrap, .track-info { display: block; width: 100%; }
-  .art-wrap { padding-right: 0; margin-bottom: 20px; }
+  .art-wrap { padding-right: 0; margin-bottom: 12px; }
   .album-art { max-width: 420px; margin: 0 auto; }
   .track-name { font-size: 36px; }
   .track-artist { font-size: 22px; }
   .track-album { font-size: 18px; }
+  .progress-wrap { margin-top: 16px; max-width: 100%; }
 }
 
 @media (max-height: 560px) and (orientation: landscape) {

@@ -957,7 +957,7 @@
   }
 
   async function fetchNowPlaying() {
-    if (isFetching || document.hidden) return;
+    if (isFetching) return;
     isFetching = true;
     try {
       let data = await apiFetch('/me/player/currently-playing');
@@ -981,7 +981,7 @@
         if (rateLimitTimer) clearTimeout(rateLimitTimer);
         rateLimitTimer = setTimeout(() => {
           rateLimitTimer = null;
-          if (getToken() && !document.hidden) startPolling();
+          if (getToken()) startPolling();
         }, retryAfter * 1000);
       } else {
         showTransientStatus(err.message || 'Failed to fetch playback.', 4000);
