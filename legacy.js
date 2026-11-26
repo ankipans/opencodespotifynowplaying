@@ -26,6 +26,7 @@
   var el = {
     setupPanel: $('setup-panel'),
     playerPanel: $('player-panel'),
+    popoutBtn: $('popout-btn'),
     settingsToggle: $('settings-toggle'),
     accessTokenInput: $('access-token-input'),
     saveAccessToken: $('save-access-token'),
@@ -479,6 +480,36 @@
     };
   })();
 
+  var popoutChannel = null;
+  function getPopoutChannel() {
+    if (popoutChannel) return popoutChannel;
+    if (typeof BroadcastChannel === 'undefined') return null;
+    try { popoutChannel = new BroadcastChannel('sp_now_playing_popout'); } catch (e) { popoutChannel = null; }
+    return popoutChannel;
+  }
+
+  function publishPopoutState() {
+    var payload;
+    if (!currentPlayback) {
+      payload = { empty: true, timestamp: (new Date()).getTime() };
+    } else {
+      payload = {
+        title: currentPlayback.title || '',
+        artist: currentPlayback.artists || '',
+        album: currentPlayback.album || '',
+        image: currentPlayback.image || '',
+        isPlaying: !!currentPlayback.isPlaying,
+        statusText: currentPlayback.isPlaying ? 'Playing' : 'Paused',
+        progressMs: Math.max(0, Number(currentPlayback.progressMs || 0)),
+        durationMs: Math.max(0, Number(currentPlayback.durationMs || 0)),
+        timestamp: (new Date()).getTime()
+      };
+    }
+    try { localStorage.setItem('sp_popout_state', JSON.stringify(payload)); } catch (e) {}
+    var bc = getPopoutChannel();
+    if (bc) { try { bc.postMessage(payload); } catch (e) {} }
+  }
+
   function renderNothingPlaying(message) {
     currentPlayback = null;
     lastNotifiedTrackId = 'none';
@@ -496,6 +527,7 @@
     setDocumentTitle('', '');
     setBackground('');
     playbackIndicator(false);
+    publishPopoutState();
   }
 
   function fetchPlaylistName(uri) {
@@ -535,7 +567,7 @@
     var duration = item.duration_ms || 0;
     var progress = typeof data.progress_ms === 'number' ? data.progress_ms : 0;
 
-    currentPlayback = { isPlaying: !!data.is_playing, progressMs: progress, durationMs: duration };
+    currentPlayback = { isPlaying: !!data.is_playing, progressMs: progress, durationMs: duration, title: title, artists: artists, album: album, image: image };
     lastProgressAt = (new Date()).getTime();
 
     if (el.albumArt) {
@@ -571,6 +603,7 @@
     fetchPlaylistName(data.context && data.context.uri ? data.context.uri : null);
     notifyTrackChange(item.uri || item.id || '', title, artists, album, image);
     playbackIndicator(!!data.is_playing);
+    publishPopoutState();
   }
 
   function fetchNowPlaying() {
@@ -642,6 +675,11 @@
   }
 
   function bindEvents() {
+    if (el.popoutBtn) el.popoutBtn.onclick = function () {
+      publishPopoutState();
+      var w = window.open('./popout.html', 'sp-now-playing-popout', 'width=460,height=230,resizable=yes,scrollbars=no');
+      if (w && w.focus) w.focus();
+    };
     if (el.settingsToggle) el.settingsToggle.onclick = function () {
       var opening = el.setupPanel.style.display === 'none';
       el.setupPanel.style.display = opening ? 'block' : 'none';

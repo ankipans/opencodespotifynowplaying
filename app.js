@@ -94,6 +94,7 @@
     contextSep: document.getElementById('context-sep'),
     footerStatus: document.getElementById('footer-status'),
     bgArt: document.getElementById('bg-art'),
+    popoutBtn: document.getElementById('popout-btn'),
     fullscreenBtn: document.getElementById('fullscreen-btn'),
     wakelockBtn: document.getElementById('wakelock-btn'),
   };
@@ -778,6 +779,31 @@
     };
   })();
 
+  let popoutChannel = null;
+  function getPopoutChannel() {
+    if (popoutChannel) return popoutChannel;
+    if (typeof BroadcastChannel === 'undefined') return null;
+    try { popoutChannel = new BroadcastChannel('sp_now_playing_popout'); } catch (e) { popoutChannel = null; }
+    return popoutChannel;
+  }
+
+  function publishPopoutState() {
+    const payload = !currentPlayback ? { empty: true, timestamp: Date.now() } : {
+      title: currentPlayback.title || '',
+      artist: currentPlayback.artists || '',
+      album: currentPlayback.album || '',
+      image: currentPlayback.image || '',
+      isPlaying: !!currentPlayback.isPlaying,
+      statusText: currentPlayback.isPlaying ? 'Playing' : 'Paused',
+      progressMs: Math.max(0, Number(currentPlayback.progressMs || 0)),
+      durationMs: Math.max(0, Number(currentPlayback.durationMs || 0)),
+      timestamp: Date.now()
+    };
+    try { localStorage.setItem('sp_popout_state', JSON.stringify(payload)); } catch (e) {}
+    const bc = getPopoutChannel();
+    if (bc) { try { bc.postMessage(payload); } catch (e) {} }
+  }
+
   function renderNothingPlaying(message) {
     currentPlayback = null;
     lastMediaData = null;
@@ -805,6 +831,7 @@
     setBackground('');
     updateMediaSession(null, null, '');
     playbackIndicator(false);
+    publishPopoutState();
   }
 
   function renderPlayback(data) {
@@ -829,6 +856,10 @@
       isPlaying: !!data.is_playing,
       progressMs: progress,
       durationMs: duration,
+      title,
+      artists,
+      album,
+      image,
     };
     lastProgressAt = Date.now();
 
@@ -872,6 +903,7 @@
     updateMediaSession(data, item, image);
     notifyTrackChange(item.uri || item.id || '', title, artists, album, image);
     playbackIndicator(!!data.is_playing);
+    publishPopoutState();
   }
 
   async function exchangeToken(params) {
@@ -1755,6 +1787,11 @@
       if (el.clientIdInput) el.clientIdInput.focus();
     });
     if (el.logoutBtn) el.logoutBtn.addEventListener('click', disconnect);
+    if (el.popoutBtn) el.popoutBtn.addEventListener('click', () => {
+      publishPopoutState();
+      const w = window.open('./popout.html', 'sp-now-playing-popout', 'width=460,height=230,resizable=yes,scrollbars=no');
+      if (w && w.focus) w.focus();
+    });
     el.fullscreenBtn.addEventListener('click', () => { toggleFullscreen().catch(console.error); });
     el.wakelockBtn.addEventListener('click', () => { toggleWakeLock().catch(console.error); });
     if (el.prevBtn) el.prevBtn.addEventListener('click', () => { controlPlayback('previous').catch(console.error); });
